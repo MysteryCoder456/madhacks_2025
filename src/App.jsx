@@ -1,27 +1,46 @@
+import React, { useState } from "react";
 import Menu from "./menu.jsx";
+import JoinModal from "./join.jsx";
+import CreateModal from "./create.jsx";
 
 function App() {
-  const handleCreateRoom = () => {
-    console.log("Create Room clicked");
-    // TODO: set jsx file for creating room
+  const [isJoinOpen, setIsJoinOpen] = useState(false);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+
+  const handleCreateRoom = () => setIsCreateOpen(true);
+  const handleJoinRoom = () => setIsJoinOpen(true);
+  const handleOpenPreferences = () => {};
+
+  const handleJoinSubmit = (roomCode, name) => {
+    console.log("Join with:", roomCode, name);
+    setIsJoinOpen(false);
   };
 
-  const handleJoinRoom = () => {
-    console.log("Join Room clicked");
-    // TODO: set jsx file for joining room
-  };
-
-  const handleOpenPreferences = () => {
-    console.log("Preferences clicked");
-    // TODO: set a preferences page
+  const handleCreateSubmit = (name) => {
+    console.log("Create room with:", name);
+    setIsCreateOpen(false);
   };
 
   return (
-    <Menu
-      onCreateRoom={handleCreateRoom}
-      onJoinRoom={handleJoinRoom}
-      onOpenPreferences={handleOpenPreferences}
-    />
+    <>
+      <Menu
+        onCreateRoom={handleCreateRoom}
+        onJoinRoom={handleJoinRoom}
+        onOpenPreferences={handleOpenPreferences}
+      />
+
+      <JoinModal
+        open={isJoinOpen}
+        onClose={() => setIsJoinOpen(false)}
+        onJoin={handleJoinSubmit}
+      />
+
+      <CreateModal
+        open={isCreateOpen}
+        onClose={() => setIsCreateOpen(false)}
+        onCreate={handleCreateSubmit}
+      />
+    </>
   );
 }
 

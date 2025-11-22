@@ -7,25 +7,47 @@ export default function JoinModal({ open, onClose, onJoin }) {
   if (!open) return null; // don't render if closed
 
   const handleDigitChange = (index, value) => {
-    const digit = value.replace(/\D/g, "").slice(0, 1); // only 0–9, max 1 char
+    const digit = value.replace(/\D/g, "").slice(0, 1); // keep only one digit
+  
     setCode((prev) => {
       const next = [...prev];
       next[index] = digit;
       return next;
     });
+  
+    // AUTO-ADVANCE if a digit was entered
+    if (digit && index < 5) {
+      const nextInput = document.getElementById(`digit-${index + 1}`);
+      if (nextInput) nextInput.focus();
+    }
   };
+  
 
   // Backspace should just clear that cell and keep focus there
   const handleDigitKeyDown = (index, e) => {
     if (e.key === "Backspace") {
       e.preventDefault();
+  
+      // Clear current digit
       setCode((prev) => {
         const next = [...prev];
         next[index] = "";
         return next;
       });
+  
+      // Move focus to previous input (if it exists)
+      if (index > 0) {
+        const prevInput = document.getElementById(`digit-${index - 1}`);
+        if (prevInput) {
+          prevInput.focus();
+          const len = prevInput.value.length;
+          // put cursor after the existing digit (if any)
+          prevInput.setSelectionRange(len, len);
+        }
+      }
     }
   };
+  
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -53,7 +75,7 @@ export default function JoinModal({ open, onClose, onJoin }) {
 
         <h2 style={styles.title}>Join by Code</h2>
         <p style={styles.subtitle}>
-          Enter the 6-digit room code to join a MindMerge session.
+          Enter the 6-digit code to join a MindMerge room.
         </p>
 
         <form onSubmit={handleSubmit}>
@@ -76,6 +98,7 @@ export default function JoinModal({ open, onClose, onJoin }) {
             {code.map((digit, index) => (
               <div key={index} style={styles.digitBox}>
                 <input
+                  id={`digit-${index}`}
                   style={styles.digitInput}
                   value={digit}
                   onChange={(e) => handleDigitChange(index, e.target.value)}
