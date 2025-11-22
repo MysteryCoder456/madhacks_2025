@@ -1,20 +1,60 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 
 export default function Menu({ onCreateRoom, onJoinRoom, onOpenPreferences }) {
+  const fullTitle = "MindMerge";
+  const [displayedTitle, setDisplayedTitle] = useState("");
+  const [hovered, setHovered] = useState(null); 
+
+  useEffect(() => {
+    let i = 0;
+    const interval = setInterval(() => {
+      setDisplayedTitle(fullTitle.slice(0, i + 1));
+      i++;
+      if (i === fullTitle.length) clearInterval(interval);
+    }, 90);
+
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <div style={styles.container}>
-      <h1 style={styles.title}>Whiteboard Collab</h1>
+      <h1 style={styles.title}>{displayedTitle}</h1>
 
-      <div style={styles.buttonContainer}>
-        <button style={styles.button} onClick={onCreateRoom}>
+      <div style={styles.buttons}>
+        
+        <button
+          style={{
+            ...styles.button,
+            ...(hovered === "create" ? styles.buttonHover : {}),
+          }}
+          onMouseEnter={() => setHovered("create")}
+          onMouseLeave={() => setHovered(null)}
+          onClick={onCreateRoom}
+        >
           Create Room
         </button>
 
-        <button style={styles.button} onClick={onJoinRoom}>
+        <button
+          style={{
+            ...styles.button,
+            ...(hovered === "join" ? styles.buttonHover : {}),
+          }}
+          onMouseEnter={() => setHovered("join")}
+          onMouseLeave={() => setHovered(null)}
+          onClick={onJoinRoom}
+        >
           Join Room
         </button>
 
-        <button style={styles.button} onClick={onOpenPreferences}>
+        <button
+          style={{
+            ...styles.button,
+            ...(hovered === "prefs" ? styles.buttonHover : {}),
+          }}
+          onMouseEnter={() => setHovered("prefs")}
+          onMouseLeave={() => setHovered(null)}
+          onClick={onOpenPreferences}
+        >
           Preferences
         </button>
       </div>
@@ -26,32 +66,46 @@ const styles = {
   container: {
     height: "100vh",
     width: "100vw",
+    background: "#000000",
     display: "flex",
     flexDirection: "column",
-    alignItems: "center",
     justifyContent: "center",
-    background: "#f0f0f0",
-    fontFamily: "sans-serif",
+    alignItems: "center",
+    fontFamily: "Inter, Arial, sans-serif",
   },
+
   title: {
-    fontSize: "2.2rem",
-    marginBottom: "40px",
-    fontWeight: "bold",
+    fontSize: "4rem",
+    fontWeight: "800",
+    color: "white",
+    marginBottom: "80px",
+    letterSpacing: "0.2rem",
+    textTransform: "uppercase",
   },
-  buttonContainer: {
+
+  buttons: {
     display: "flex",
     flexDirection: "column",
-    gap: "16px",
-    width: "240px",
+    gap: "30px",
+    width: "min(500px, 90vw)",
   },
+
   button: {
-    padding: "12px 20px",
-    borderRadius: "8px",
+    width: "100%",
+    padding: "24px 20px",
+    borderRadius: "16px",
     border: "none",
-    fontSize: "1rem",
+    fontSize: "1.5rem",
+    fontWeight: "700",
     cursor: "pointer",
-    backgroundColor: "#4A90E2",
+    backgroundColor: "#1A3BAA",
     color: "white",
-    transition: "0.2s",
+    transition: "opacity 0.25s ease, transform 0.2s ease",
+    boxShadow: "0 8px 24px rgba(0,0,0,0.6)",
+  },
+
+  buttonHover: {
+    opacity: 0.75,
+    transform: "scale(1.02)",
   },
 };
