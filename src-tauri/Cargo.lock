@@ -620,6 +620,7 @@ name = "collab-whiteboard"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "futures-lite",
  "iroh",
  "iroh-base",
  "iroh-gossip",
