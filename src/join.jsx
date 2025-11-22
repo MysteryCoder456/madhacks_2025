@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { invoke } from "@tauri-apps/api/core";
 
 export default function JoinModal({ open, onClose, onJoin }) {
   const [code, setCode] = useState(["", "", "", "", "", ""]);
@@ -43,15 +44,23 @@ export default function JoinModal({ open, onClose, onJoin }) {
   };
   
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    const roomCode = code.join("");
-    console.log("Join room with:", { roomCode, name });
-
-    if (onJoin) {
-      onJoin(roomCode, name); 
-    }
-  };
+  const handleSubmit = async (e) => {
+      e.preventDefault();
+      try {
+        const joinCode = await invoke("create_room", {username: name,
+        });
+        console.log("Room created:", joinCode);
+        onClose();
+      } catch (error) {
+        console.error("Didn't create room", error);
+        alert(
+          "Couldn't join room\n\n" +
+          `Error: ${error}\n\n` +
+          "Please try again."
+        );
+      }
+    };
+  
 
   return (
     <div style={styles.overlay} onClick={onClose}>
@@ -64,7 +73,6 @@ export default function JoinModal({ open, onClose, onJoin }) {
           onClick={onClose}
           aria-label="Close join modal"
         >
-          ✖
         </button>
 
         <h2 style={styles.title}>Join by Code</h2>
