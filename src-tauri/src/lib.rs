@@ -20,6 +20,8 @@ struct AppStateInner {
 }
 type AppState = RwLock<AppStateInner>;
 
+// TODO: 6 digit codes
+
 #[tauri::command]
 async fn create_room(app_state: State<'_, AppState>, username: String) -> Result<String, String> {
     let mut app_state = app_state.write().await;
