@@ -4,44 +4,38 @@ export default function JoinModal({ open, onClose, onJoin }) {
   const [code, setCode] = useState(["", "", "", "", "", ""]);
   const [name, setName] = useState("");
 
-  if (!open) return null; // don't render if closed
+  if (!open) return null; 
 
   const handleDigitChange = (index, value) => {
-    const digit = value.replace(/\D/g, "").slice(0, 1); // keep only one digit
+    const digit = value.replace(/\D/g, "").slice(0, 1); 
   
     setCode((prev) => {
       const next = [...prev];
       next[index] = digit;
       return next;
     });
-  
-    // AUTO-ADVANCE if a digit was entered
+
     if (digit && index < 5) {
       const nextInput = document.getElementById(`digit-${index + 1}`);
       if (nextInput) nextInput.focus();
     }
   };
   
-
-  // Backspace should just clear that cell and keep focus there
   const handleDigitKeyDown = (index, e) => {
     if (e.key === "Backspace") {
       e.preventDefault();
   
-      // Clear current digit
       setCode((prev) => {
         const next = [...prev];
         next[index] = "";
         return next;
       });
   
-      // Move focus to previous input (if it exists)
       if (index > 0) {
         const prevInput = document.getElementById(`digit-${index - 1}`);
         if (prevInput) {
           prevInput.focus();
           const len = prevInput.value.length;
-          // put cursor after the existing digit (if any)
           prevInput.setSelectionRange(len, len);
         }
       }
@@ -55,7 +49,7 @@ export default function JoinModal({ open, onClose, onJoin }) {
     console.log("Join room with:", { roomCode, name });
 
     if (onJoin) {
-      onJoin(roomCode, name); // pass up to App for backend/Tauri
+      onJoin(roomCode, name); 
     }
   };
 
@@ -63,7 +57,7 @@ export default function JoinModal({ open, onClose, onJoin }) {
     <div style={styles.overlay} onClick={onClose}>
       <div
         style={styles.modal}
-        onClick={(e) => e.stopPropagation()} // prevent closing when clicking inside
+        onClick={(e) => e.stopPropagation()} 
       >
         <button
           style={styles.closeButton}
@@ -79,7 +73,7 @@ export default function JoinModal({ open, onClose, onJoin }) {
         </p>
 
         <form onSubmit={handleSubmit}>
-          {/* Username field */}
+
           <div style={styles.fieldGroup}>
             <label style={styles.label}>Name shown on the whiteboard</label>
             <input
@@ -90,10 +84,8 @@ export default function JoinModal({ open, onClose, onJoin }) {
             />
           </div>
 
-          {/* Headline before code */}
           <h3 style={styles.codeHeading}>Join room by code</h3>
 
-          {/* Six-digit code boxes with dashes */}
           <div style={styles.codeContainer}>
             {code.map((digit, index) => (
               <div key={index} style={styles.digitBox}>
@@ -142,14 +134,13 @@ const styles = {
     zIndex: 1000,
   },
 
-  // Bigger modal box
   modal: {
     position: "relative",
     background: "#050816",
     borderRadius: "24px",
     border: "1px solid #111827",
     padding: "32px 40px 30px",
-    width: "min(680px, 95vw)", // wider than before
+    width: "min(680px, 95vw)", 
     boxShadow: "0 30px 80px rgba(0, 0, 0, 0.8)",
     color: "#E5E7EB",
   },
@@ -235,7 +226,6 @@ const styles = {
     outline: "none",
   },
 
-  // narrower dashes
   dash: {
     marginTop: "6px",
     width: "28px",
