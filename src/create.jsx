@@ -1,14 +1,21 @@
 import React, { useState } from "react";
+import { invoke } from "@tauri-apps/api/core";
 
 export default function CreateModal({ open, onClose, onCreate }) {
   const [name, setName] = useState("");
 
   if (!open) return null;
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (onCreate) {
-      onCreate(name); // send username to backend via App.jsx
+    try {
+      const joinCode = await invoke("create_room", {username: name,
+      });
+      console.log("Room created:", joinCode);
+      onClose();
+    } catch (error) {
+      console.error("Didn't create room", error);
+      alert(`Could not create room.\n\nError: ${error}`);
     }
   };
 
