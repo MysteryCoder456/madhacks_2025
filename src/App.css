@@ -181,3 +181,33 @@ body,
   display: block;
   cursor: crosshair;
 }
+
+.top-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.participants {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.8rem;
+}
+
+.participants-label {
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 0.7rem;
+  color: #6b7280; /* gray-500-ish */
+}
+
+.participant-pill {
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  background: #e5e7eb; /* light gray */
+  color: #111827;
+  font-size: 0.8rem;
+  font-weight: 500;
+}

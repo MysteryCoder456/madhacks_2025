@@ -5,6 +5,7 @@ export default function Whiteboard(){
     const containerRef = useRef(null);
     const [isDrawing, setIsDrawing] = useState(false);
     const [lastPos, setLastPos] = useState({ x: 0, y: 0 });
+    const participants = ["Shivvy Dunne (You)", "Rehat", "Namboo"]
 
 
     useEffect(() => {
@@ -64,23 +65,34 @@ export default function Whiteboard(){
         ctx.clearRect(0, 0, rect.width, rect.height);
     }
 
-    return(
-        <div className = "whiteboard-wrapper">
-            <div className = "toolbar">
-                <button onClick = {handleClear}>Clear</button>
+    return (
+        <div className="whiteboard-wrapper">
+          <div className="top-row">
+            <div className="toolbar">
+              <button onClick={handleClear}>Clear</button>
             </div>
-            <div className = "canvas" ref = {containerRef}>
-                <canvas
-                ref = {canvasRef}
-                className = "whiteboard-canvas"
-                onMouseDown = {handleMouseDown}
-                onMouseMove = {handleMouseMove}
-                onMouseUp = {stopDrawing}
-                onMouseLeave = {stopDrawing}>
-                </canvas>
+            <div className="participants">
+              <span className="participants-label">In room</span>
+              {participants.map((name) => (
+                <div key={name} className="participant-pill">
+                  {name}
+                </div>
+              ))}
             </div>
+          </div>
+      
+          <div className="canvas-container" ref={containerRef}>
+            <canvas
+              ref={canvasRef}
+              className="whiteboard-canvas"
+              onMouseDown={handleMouseDown}
+              onMouseMove={handleMouseMove}
+              onMouseUp={stopDrawing}
+              onMouseLeave={stopDrawing}
+            />
+          </div>
         </div>
-    );
+      );
 }
 
 
