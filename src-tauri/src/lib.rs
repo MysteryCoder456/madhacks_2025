@@ -266,6 +266,7 @@ pub fn run() {
     dotenv::dotenv().unwrap();
 
     tauri::Builder::default()
+        .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_http::init())
         .setup(|app| {
             let app_state = AppStateInner::default();

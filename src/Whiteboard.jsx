@@ -1,6 +1,7 @@
 import { fetch } from "@tauri-apps/plugin-http";
 import { listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
+import { open, exists, create, BaseDirectory } from '@tauri-apps/plugin-fs';
 import React, { useRef, useEffect, useState } from "react";
 import { GoogleGenAI } from "@google/genai";
 import { Canvg } from "canvg";
@@ -298,19 +299,26 @@ export default function Whiteboard({ roomCode, username, onExit  }) {
     
       canvas.toBlob(
         (blob) => {
-          if (!blob) {
-            console.error("Failed to create blob from canvas");
-            return;
-          }
-    
-          const url = URL.createObjectURL(blob);
-          const link = document.createElement("a");
-          link.href = url;
-          link.download = "mindmerger.png"; 
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-          URL.revokeObjectURL(url);
+            if (!blob) {
+                console.error("Failed to create blob from canvas");
+                return;
+            }
+
+            const filename = "whiteboard.png";
+            exists(filename, { baseDir: BaseDirectory.Download })
+                .then((fileExists) => {
+                    if (fileExists) {
+                        return open(filename, { write: true, baseDir: BaseDirectory.Download });
+                    } else {
+                        return create(filename, { baseDir: BaseDirectory.Download });
+                    }
+                })
+                .then((handle) => blob.bytes().then((bytes) => handle.write(bytes)))
+                .then((_) => toast.success(` Saved \"${filename}\" to your downloads folder`, { style: { background: "#1f2937", color: "white" } }))
+                .catch((error) => {
+                    console.error(error);
+                    toast.error(` Failed to save image\nError: ${error}`, { style: { background: "#1f2937", color: "white" } })
+                });
         },
         "image/png"
       );

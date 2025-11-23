@@ -12,10 +12,31 @@
     {
       "identifier": "http:default",
       "allow": [
-          { "url": "https://api.fish.audio" },
-          { "url": "https://generativelanguage.googleapis.com" }
+        {
+          "url": "https://api.fish.audio"
+        },
+        {
+          "url": "https://generativelanguage.googleapis.com"
+        }
       ],
       "deny": []
+    },
+    "fs:default",
+    {
+      "identifier": "fs:allow-open",
+      "allow": [{ "path": "$DOWNLOAD/*" }]
+    },
+    {
+      "identifier": "fs:allow-write",
+      "allow": [{ "path": "$DOWNLOAD/*" }]
+    },
+    {
+      "identifier": "fs:allow-create",
+      "allow": [{ "path": "$DOWNLOAD/*" }]
+    },
+    {
+      "identifier": "fs:allow-exists",
+      "allow": [{ "path": "$DOWNLOAD/*" }]
     }
   ]
 }
