@@ -191,11 +191,15 @@ export default function Whiteboard({ roomCode, username  }) {
           ctx.globalCompositeOperation = "source-over";
           ctx.strokeStyle = color;
         }
-        // TODO: add to `canvasItems`
+
         ctx.beginPath();
         ctx.moveTo(lastPos.x, lastPos.y);
         ctx.lineTo(pos.x, pos.y);
         ctx.stroke();
+        ctx.endPath();
+
+        const lineSvg = `<line x1="${lastPos.x}" y1="${lastPos.y}" x2="${pos.x}" y2="${pos.y}" stroke="${ctx.strokeStyle}" stroke-width="${thickness}"/>`;
+        invoke("send_message", { message: JSON.stringify({"draw": [lineSvg]}) }).catch(console.error);
 
         setLastPos(pos);
     }
