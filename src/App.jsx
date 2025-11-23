@@ -3,16 +3,16 @@ import Menu from "./menu.jsx";
 import JoinModal from "./join.jsx";
 import CreateModal from "./create.jsx";
 import Whiteboard from "./Whiteboard.jsx";
+import { Toaster } from "react-hot-toast";
 
 function App() {
   const [isJoinOpen, setIsJoinOpen] = useState(false);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [isWhiteboardOpen, setIsWhiteboardOpen] = useState(false); // ✅ NEW
+  const [isWhiteboardOpen, setIsWhiteboardOpen] = useState(false);
 
   const handleCreateRoom = () => setIsCreateOpen(true);
   const handleJoinRoom = () => setIsJoinOpen(true);
 
-  // ✅ same style as other handlers
   const handleOpenPreferences = () => setIsWhiteboardOpen(true);
 
   const handleJoinSubmit = (roomCode, name) => {
@@ -27,6 +27,23 @@ function App() {
 
   return (
     <>
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          duration: 4000,
+          style: {
+            background: "#0f172a",
+            color: "#f8fafc",
+            border: "1px solid #334155",
+          },
+          success: {
+            iconTheme: { primary: "#22c55e", secondary: "white" },
+          },
+          error: {
+            iconTheme: { primary: "#ef4444", secondary: "white" },
+          },
+        }}
+      />
       {!isWhiteboardOpen && (
         <Menu
           onCreateRoom={handleCreateRoom}
@@ -47,7 +64,6 @@ function App() {
         onCreate={handleCreateSubmit}
       />
 
-      {/* ✅ Attach the whiteboard exactly like you requested */}
       {isWhiteboardOpen && <Whiteboard />}
     </>
   );
