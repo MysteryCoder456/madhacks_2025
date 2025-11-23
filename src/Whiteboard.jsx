@@ -141,7 +141,6 @@ export default function Whiteboard({ roomCode, username  }) {
                     }
                     
                     // console.debug(data);
-                    debugger;
 
                     if (data.me) {
                         const peerName = data.me.username;
