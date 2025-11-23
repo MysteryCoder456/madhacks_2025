@@ -319,7 +319,7 @@ export default function Whiteboard({ roomCode, username  }) {
           <div className="toolbar" style={{ display: "flex", gap: "12px", alignItems: "center" }}>
         <button onClick={() => {
             handleClear();
-            invoke("send_message", { message: JSON.stringify({"clear": 1}) }).catch(console.error);
+            invoke("send_message", { message: JSON.stringify({"clear": "1"}) }).catch(console.error);
         }}>Clear</button>
 
             <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
@@ -401,7 +401,7 @@ export default function Whiteboard({ roomCode, username  }) {
                 <button
                   className="pillow-button"
                   onClick={() => {
-                      invoke("send_message", { message: JSON.stringify({ "requestPillow": 1 }) }).catch(console.error);
+                      invoke("send_message", { message: JSON.stringify({ "requestPillow": "1" }) }).catch(console.error);
                       setHasPillow(true);
                   }}
                 >
