@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import toast from "react-hot-toast";
 
 export default function CreateModal({ open, onClose, onCreate }) {
   const [name, setName] = useState("");
@@ -15,7 +16,10 @@ export default function CreateModal({ open, onClose, onCreate }) {
       onClose();
     } catch (error) {
       console.error("Didn't create room", error);
-      alert(`Could not create room.\n\nError: ${error}`);
+      toast.error(
+        ` Could not create room\nError: ${error}`,
+        { style: { background: "#1f2937", color: "white" } }
+      );
     }
   };
 
