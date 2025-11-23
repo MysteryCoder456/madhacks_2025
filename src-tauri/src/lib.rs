@@ -280,7 +280,6 @@ async fn periodic_me_loop(app_handle: AppHandle, send: GossipSender) -> anyhow::
             // Broadcast the 'me' message
             if let Err(err) = send.broadcast(me_message.into_bytes().into()).await {
                 eprintln!("Failed to broadcast 'me' message: {}", err);
-                break Err(anyhow::anyhow!(err));
             }
 
             // Sleep
