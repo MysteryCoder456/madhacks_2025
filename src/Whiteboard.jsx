@@ -6,15 +6,15 @@ import { Canvg } from "canvg";
 
 export default function Whiteboard() {
     const ai = new GoogleGenAI({
-        apiKey: "AIzaSyAJUAqxgnqicSb0xoR7K22utr8qReSaQ-8",
+        apiKey:import.meta.env.GEMINI_API_KEY,
     });
-    const aiModel = 'gemini-2.5-flash';
+    const aiModel = 'gemini-2.0-flash';
     const aiSystemPrompt = `You are an expert Vector Graphics Engine. Your sole purpose is to interpret natural language commands and generate valid SVG (Scalable Vector Graphics) code\n\n### INPUT DATA\nYou will receive three pieces of information in every user message:\n1. **Command:** The natural language request (e.g., "Draw three small red circles in a row").\n2. **Canvas Dimensions:** The width and height of the viewing area (e.g., { width: 800, height: 600 }).\n3. **Existing Items:** A list of SVG elements currently on the canvas with their IDs and attributes\n\n### COORDINATE SYSTEM RULES\n- The coordinate system starts at (0,0) in the top-left corner.\n- X increases to the right.\n- Y increases downwards.\n- "Center" means (width/2, height/2)\n\n### GENERATION RULES\n1. **Output Format:** You must return a JSON object containing a single key: \`"svgs"\`. The value must be an **array of strings**. Each string in the array represents one distinct SVG element (e.g., \`["<rect ... />", "<circle ... />"]\`).\n2. **Separation:** If a command requires multiple shapes (e.g., "Draw a smiley face"), break the composition down into individual primitives (face, left eye, right eye, mouth) and place them as separate strings in the array.\n3. **IDs:** Generate unique IDs for every new shape (e.g., \`id="shape_timestamp_1"\`).\n4. **Context Awareness:** \n If the user references an existing item, use the coordinates from the **Existing Items** list to calculate position.\n- If the user asks to modify an item, output the *new* version of that tag in the array.\n5. **Defaults:** If no color is specified, use "black". If no size is specified, use reasonable defaults\n\n### EXAMPLE INTERACTIO\n\n**User Input:**\n{\n"command": "Draw a target with a red center and white outer ring",\n"canvas": { "width": 500, "height": 500 },\n"existing_items": []\n\n\n**Your Output:**\n{\n"svgs": [\n"<circle id='outer_ring' cx='250' cy='250' r='50' fill='none' stroke='white' stroke-width='5' />",\n"<circle id='center_dot' cx='250' cy='250' r='20' fill='red' />"\n]\n}`;
     const aiConfig = {
         systemInstruction: aiSystemPrompt,
-        thinkingConfig: {
-            thinkingBudget: -1, // Let the model decide
-        },
+        // thinkingConfig: {
+        //     thinkingBudget: -1, // Let the model decide
+        // },
     };
 
     const canvasRef = useRef(null);
