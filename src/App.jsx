@@ -21,6 +21,9 @@ function App() {
   const handleJoinSubmit = (roomCode, name) => {
     console.log("Join with:", roomCode, name);
     setIsJoinOpen(false);
+    setCurrentRoomCode(roomCode);
+    setCurrentUsername(name);
+    setIsWhiteboardOpen(true);
   };
 
   const handleCreateSubmit = (joinCode, username) => {
