@@ -86,41 +86,43 @@ export default function Whiteboard() {
     }
 
     async function startRecording() {
-        if (!hasPillow || isRecording) return;
+      if (!hasPillow || isRecording) return;
 
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            const mediaRecorder = new MediaRecorder(stream);
-            mediaRecorderRef.current = mediaRecorder;
-            audioChunksRef.current = [];
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const mediaRecorder = new MediaRecorder(stream, { mimeType: "audio/webm" });
+        mediaRecorderRef.current = mediaRecorder;
+        audioChunksRef.current = [];
 
-            mediaRecorder.ondataavailable = (event) => {
-                if (event.data.size > 0) {
-                    audioChunksRef.current.push(event.data);
-                }
-            };
-            mediaRecorder.onstop = async () => {
-                const blob = new Blob(audioChunksRef.current, { type: "audio/webm" });
-            }
+        mediaRecorder.ondataavailable = (event) => {
+          if (event.data.size > 0) {
+            audioChunksRef.current.push(event.data);
+          }
+        };
 
+        mediaRecorder.onstop = async () => {
+          try {
+            const blob = new Blob(audioChunksRef.current, { type: "audio/webm" });
             const formData = new FormData();
-            formData.append("audio", blob, "chunk.webm")
-            try {
-                await fetch("http://localhost:1420/api/talking-pillow/audio", {
-                    method: "POST",
-                    body: formData,
-                });
-            } catch (err) {
-                console.error("Failed to send audio chunk", err)
-            }
+            formData.append("audio", blob, "chunk.webm");
+
+            await fetch("http://localhost:1420/api/talking-pillow/audio", {
+              method: "POST",
+              body: formData,
+            });
+          } catch (err) {
+            console.error("Failed to send audio chunk", err);
+          } finally {
             stream.getTracks().forEach((t) => t.stop());
             setIsRecording(false);
+          }
+        };
 
-            mediaRecorder.start();
-            setIsRecording(true);
-        } catch (err) {
-            console.error("Recording failed", err);
-        }
+        mediaRecorder.start();
+        setIsRecording(true);
+      } catch (err) {
+        console.error("Recording failed", err);
+      }
     }
 
     function stopRecording() {
@@ -191,6 +193,30 @@ export default function Whiteboard() {
                   {name}
                 </div>
               ))}
+              {!hasPillow ? (
+                <button
+                  className="pillow-button"
+                  onClick={() => {
+                    // later backend will enforce only one pillow per room
+                    setHasPillow(true);
+                  }}
+                >
+                  Request talking pillow 🎤
+                </button>
+              ) : (
+                <button
+                  className={`pillow-button ${isRecording ? "recording" : ""}`}
+                  onClick={() => {
+                    if (isRecording) {
+                      stopRecording();
+                    } else {
+                      startRecording();
+                    }
+                  }}
+                >
+                  {isRecording ? "Stop talking ⏹" : "Start talking 🎙"}
+                </button>
+              )}
             </div>
           </div>   
       
