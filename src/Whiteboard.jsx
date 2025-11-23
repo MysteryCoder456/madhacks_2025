@@ -5,7 +5,7 @@ import React, { useRef, useEffect, useState } from "react";
 import { GoogleGenAI } from "@google/genai";
 import { Canvg } from "canvg";
 
-export default function Whiteboard({ roomCode, username  }) {
+export default function Whiteboard({ roomCode, username, onExit  }) {
     const ai = new GoogleGenAI({
         apiKey: import.meta.env.VITE_GEMINI_API_KEY,
     });
@@ -159,6 +159,15 @@ export default function Whiteboard({ roomCode, username  }) {
                     if (data.requestPillow) {
                         setHasPillow(false);
                     }
+                    if (data.leave) {
+                      const leaveName = data.leave;
+                      setParticipants((prev) =>
+                        prev.filter(
+                          (label) =>
+                            label !== leaveName && label !== `${leaveName} (You)`
+                        )
+                      );
+                    }
                 });
             } catch (err) {
                 console.error("Failed to listen:", err);
@@ -217,6 +226,18 @@ export default function Whiteboard({ roomCode, username  }) {
         setIsDrawing(false);
     }
 
+    function handleExit() {
+      if(username)
+      {
+        setParticipants((prev) => prev.filter((label) => label !== username && label !== `${username} (You)`));
+        invoke("send_message",{
+          message: JSON.stringify({"leave": username}),
+        }).catch(console.error);}
+        if(typeof onExit === "function"){
+          onExit();
+      }
+    }
+
     function handleClear() {
         const canvas = canvasRef.current;
         const ctx = canvas.getContext("2d");
@@ -224,6 +245,36 @@ export default function Whiteboard({ roomCode, username  }) {
         ctx.clearRect(0, 0, rect.width, rect.height);
         setCanvasItems([]);
     }
+    
+    function handleDownload() {
+      console.log("Download button clicked");
+    
+      const canvas = canvasRef.current;
+      if (!canvas) {
+        console.warn("No canvas found");
+        return;
+      }
+    
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) {
+            console.error("Failed to create blob from canvas");
+            return;
+          }
+    
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement("a");
+          link.href = url;
+          link.download = "mindmerger.png"; 
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          URL.revokeObjectURL(url);
+        },
+        "image/png"
+      );
+    }
+    
 
     async function startRecording() {
       if (!hasPillow || isRecording) return;
@@ -370,6 +421,32 @@ export default function Whiteboard({ roomCode, username  }) {
               >
                 Erase
               </button>
+              <button
+              onClick={handleDownload}
+              style={{
+                padding: "6px 10px",
+                borderRadius: 8,
+                border: "1px solid #111",
+                background: "#ffffff",
+                color: "#111827",
+                fontSize: "0.85rem",
+              }}
+              >
+                Download
+              </button>
+              <button
+              onClick={handleExit}
+               style={{
+                  padding: "6px 10px",
+                  borderRadius: 8,
+                  border: "1px solid #b91c1c",
+                  background: "#fee2e2",
+                  color: "#b91c1c",
+                   fontSize: "0.85rem",
+                   }}
+                  >
+                  Exit
+                </button>
             </div>
           </div>
           <div

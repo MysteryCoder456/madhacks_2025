@@ -34,6 +34,13 @@ function App() {
     setIsWhiteboardOpen(true);
   };
 
+  const handleExitWhiteboard = () => {
+    setIsWhiteboardOpen(false);
+    setCurrentRoomCode(null);
+    setCurrentUsername(null);
+  };
+
+
   return (
     <>
       <Toaster
@@ -76,6 +83,7 @@ function App() {
       {isWhiteboardOpen && <Whiteboard 
       roomCode={currentRoomCode}
       username={currentUsername}
+      onExit={handleExitWhiteboard}
        />}
     </>
   );
