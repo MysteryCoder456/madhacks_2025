@@ -2,10 +2,10 @@ use iroh::EndpointAddr;
 use iroh_tickets::Ticket;
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct RoomTicket {
     pub topic_id: String,
-    pub creator_addr: EndpointAddr,
+    pub current_peers: Vec<EndpointAddr>,
 }
 
 impl Ticket for RoomTicket {
