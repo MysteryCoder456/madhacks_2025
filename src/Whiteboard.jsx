@@ -1,7 +1,7 @@
 import { event } from "@tauri-apps/api";
 import React, { useRef, useEffect, useState } from "react";
 
-export default function Whiteboard({ roomCode }) {
+export default function Whiteboard({ roomCode, username  }) {
     const canvasRef = useRef(null);
     const containerRef = useRef(null);
     const [isDrawing, setIsDrawing] = useState(false);
@@ -9,7 +9,7 @@ export default function Whiteboard({ roomCode }) {
     const [color, setColor] = useState("#000000");
     const [thickness, setThickness] = useState(3);
     const [mode, setMode] = useState("pen");
-    const participants = ["Shivvy Dunne (You)", "Rehat", "Namboo"]
+    const [participants, setParticipants] = useState([]);
     const [hasPillow, setHasPillow] = useState(false);
     const [isRecording, setIsRecording] = useState(false);
     const mediaRecorderRef = useRef(null);
@@ -38,6 +38,15 @@ export default function Whiteboard({ roomCode }) {
         window.addEventListener("resize", resize);
         return () => window.removeEventListener("resize", resize);
     }, []);
+
+    useEffect(() => {
+      if (!username) return;
+  
+      setParticipants((prev) => {
+        if (prev.includes(`${username} (You)`)) return prev;
+        return [...prev, `${username} (You)`];
+      });
+    }, [username]);
 
     function getMousePos(e) {
         const canvas = canvasRef.current;

@@ -11,6 +11,7 @@ function App() {
   const [isWhiteboardOpen, setIsWhiteboardOpen] = useState(false);
 
   const [currentRoomCode, setCurrentRoomCode] = useState(null);
+  const[currentUsername, setCurrentUsername] = useState(null);
 
   const handleCreateRoom = () => setIsCreateOpen(true);
   const handleJoinRoom = () => setIsJoinOpen(true);
@@ -22,10 +23,11 @@ function App() {
     setIsJoinOpen(false);
   };
 
-  const handleCreateSubmit = (joinCode) => {
-    console.log("Create room with:", joinCode);
+  const handleCreateSubmit = (joinCode, username) => {
+    console.log("Create room with:", joinCode, "by", username);
     setIsCreateOpen(false);
     setCurrentRoomCode(joinCode);
+    setCurrentUsername(username)
     setIsWhiteboardOpen(true);
   };
 
@@ -68,7 +70,10 @@ function App() {
         onCreate={handleCreateSubmit}
       />
 
-      {isWhiteboardOpen && <Whiteboard roomCode={currentRoomCode} />}
+      {isWhiteboardOpen && <Whiteboard 
+      roomCode={currentRoomCode}
+      username={currentUsername}
+       />}
     </>
   );
 }
