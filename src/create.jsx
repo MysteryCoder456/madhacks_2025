@@ -13,6 +13,7 @@ export default function CreateModal({ open, onClose, onCreate }) {
       const joinCode = await invoke("create_room", {username: name,
       });
       console.log("Room created:", joinCode);
+      if (onCreate) { onCreate(joinCode);}
       onClose();
     } catch (error) {
       console.error("Didn't create room", error);

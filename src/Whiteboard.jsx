@@ -1,7 +1,7 @@
 import { event } from "@tauri-apps/api";
 import React, { useRef, useEffect, useState } from "react";
 
-export default function Whiteboard() {
+export default function Whiteboard({ roomCode }) {
     const canvasRef = useRef(null);
     const containerRef = useRef(null);
     const [isDrawing, setIsDrawing] = useState(false);
@@ -186,6 +186,24 @@ export default function Whiteboard() {
               </button>
             </div>
           </div>
+          <div
+          className="room-code"
+          style={{
+            margin: "0 24px",
+            fontSize: "1rem",
+            fontWeight: "600",
+            color: "#f6f6f6ff",
+            display: "flex",
+            alignItems: "center",
+            minWidth: "120px",
+            justifyContent: "center",
+          }}
+        >
+          Code:&nbsp;
+          <span style={{ letterSpacing: "0.15em" }}>
+            {roomCode || "n/a"}
+          </span>
+        </div>
             <div className="participants">
               <span className="participants-label">In room</span>
               {participants.map((name) => (
