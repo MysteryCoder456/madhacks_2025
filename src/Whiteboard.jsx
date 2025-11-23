@@ -284,8 +284,9 @@ export default function Whiteboard({ roomCode, username, onExit }) {
       );
       invoke("send_message", {
         message: JSON.stringify({ leave: username }),
-      }).catch(console.error);
-      invoke("leave_room", { joinCode: roomCode }).catch(console.error);
+      })
+        .then(() => invoke("leave_room", { joinCode: roomCode }))
+        .catch(console.error);
     }
     if (typeof onExit === "function") {
       onExit();
