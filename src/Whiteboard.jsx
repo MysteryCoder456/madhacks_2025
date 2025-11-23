@@ -141,6 +141,7 @@ export default function Whiteboard({ roomCode, username  }) {
                     }
                     
                     // console.debug(data);
+                    debugger;
 
                     if (data.me) {
                         const peerName = data.me.username;
@@ -160,12 +161,12 @@ export default function Whiteboard({ roomCode, username  }) {
                     }
 
                     if (data.clear) {
-                        clear();
+                        handleClear();
                     }
 
                     if (data.requestPillow) {
                         setHasPillow(false);
-                        toast.loading(
+                        toast.success(
                             ` ${data.requestPillow} took the talking pillow`,
                             { style: { background: "#1f2937", color: "white" } }
                         );
