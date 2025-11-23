@@ -145,8 +145,8 @@ export default function Whiteboard({ roomCode, username  }) {
                     }
 
                     if (data.draw) {
-                        const svgString = data.draw;
-                        drawSvgString(svgString);
+                        const svgs = data.draw;
+                        drawSvgs(svgs);
                     }
                 });
             } catch (err) {
@@ -277,9 +277,8 @@ export default function Whiteboard({ roomCode, username  }) {
             const data = JSON.parse(responseString.replace("```json", "").replace("```", ""));
 
             if (data.svgs) {
-                const concatSvgs = `<svg xmlns="http://www.w3.org/2000/svg" width="${canvasRef.current.width}" height="${canvasRef.current.height}" viewBox="0 0 ${canvasRef.current.width} ${canvasRef.current.height}">` + [...canvasItems, ...data.svgs].join("\n") + "</svg>";
-                drawSvgString(concatSvgs);
-                invoke("send_message", { message: JSON.stringify({"draw": concatSvgs}) }).catch(console.error);
+                drawSvgs(data.svgs);
+                invoke("send_message", { message: JSON.stringify({"draw": data.svgs}) }).catch(console.error);
             }
         } catch (error) {
             console.error("Failed to parse AI response as JSON:", error);
@@ -287,11 +286,14 @@ export default function Whiteboard({ roomCode, username  }) {
         }
     }
 
-    function drawSvgString(svgString) {
+    function drawSvgs(svgs) {
+        const concatSvgs = `<svg xmlns="http://www.w3.org/2000/svg" width="${canvasRef.current.width}" height="${canvasRef.current.height}" viewBox="0 0 ${canvasRef.current.width} ${canvasRef.current.height}">` + [...canvasItems, ...svgs].join("\n") + "</svg>";
+
         const ctx = canvasRef.current.getContext("2d");
-        const v = Canvg.fromString(ctx, svgString);
+        const v = Canvg.fromString(ctx, concatSvgs);
         v.render();
-        setCanvasItems((prev) => [...prev, ...data.svgs]);
+
+        setCanvasItems((prev) => [...prev, ...svgs]);
     }
 
     return (
