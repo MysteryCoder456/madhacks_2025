@@ -14,6 +14,54 @@ export default function Whiteboard() {
     const [isRecording, setIsRecording] = useState(false);
     const mediaRecorderRef = useRef(null);
     const audioChunksRef = useRef([]);
+    const FISH_API_KEY = import.meta.env.VITE_FISH_API_KEY;
+    const FISH_ASR_URL = "https://api.fish.audio/v1/asr";
+    const [transcript, setTranscript] = useState("");
+
+    async function transcribeWithFishAudio(blob) {
+      if (!FISH_API_KEY) {
+        console.error("No FishAudio API key set in VITE_FISH_API_KEY");
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append("audio", blob, "chunk.webm");
+      formData.append("language", "en");
+      formData.append("ignore_timestamps", "true");
+
+      try {
+        const res = await fetch(FISH_ASR_URL, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${FISH_API_KEY}`,
+          },
+          body: formData,
+        });
+
+        if (!res.ok) {
+          const text = await res.text();
+          console.error("FishAudio ASR error:", res.status, text);
+          setTranscript(`FishAudio error ${res.status}: ${text}`);
+          return;
+        }
+
+        const data = await res.json();
+        console.log("FishAudio ASR result:", data);
+        // Try a few likely shapes; fall back to JSON string
+        const possibleText =
+          data.text ||
+          (data.result && data.result.text) ||
+          (Array.isArray(data.results) && data.results[0] && data.results[0].text);
+
+        if (possibleText) {
+          setTranscript(possibleText);
+        } else {
+          setTranscript(JSON.stringify(data, null, 2));
+        }
+      } catch (err) {
+        console.error("FishAudio request failed:", err);
+      }
+    }
 
 
     useEffect(() => {
@@ -88,6 +136,15 @@ export default function Whiteboard() {
     async function startRecording() {
       if (!hasPillow || isRecording) return;
 
+      // Guard for environments (like some Tauri WebViews) where mediaDevices is missing
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        console.error("MediaDevices.getUserMedia is not available in this environment.");
+        alert(
+          "Microphone is not available in the desktop window. Please open http://localhost:1420 in your browser to use voice notes."
+        );
+        return;
+      }
+
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         const mediaRecorder = new MediaRecorder(stream, { mimeType: "audio/webm" });
@@ -103,15 +160,7 @@ export default function Whiteboard() {
         mediaRecorder.onstop = async () => {
           try {
             const blob = new Blob(audioChunksRef.current, { type: "audio/webm" });
-            const formData = new FormData();
-            formData.append("audio", blob, "chunk.webm");
-
-            await fetch("http://localhost:1420/api/talking-pillow/audio", {
-              method: "POST",
-              body: formData,
-            });
-          } catch (err) {
-            console.error("Failed to send audio chunk", err);
+            await transcribeWithFishAudio(blob);
           } finally {
             stream.getTracks().forEach((t) => t.stop());
             setIsRecording(false);
@@ -220,7 +269,11 @@ export default function Whiteboard() {
             </div>
           </div>   
       
-          <div className="canvas-container" ref={containerRef}>
+          <div
+            className="canvas-container"
+            ref={containerRef}
+            style={{ position: "relative" }}
+          >
             <canvas
               ref={canvasRef}
               className="whiteboard-canvas"
@@ -229,6 +282,26 @@ export default function Whiteboard() {
               onMouseUp={stopDrawing}
               onMouseLeave={stopDrawing}
             />
+            {transcript && (
+              <div
+                style={{
+                  position: "absolute",
+                  top: 12,
+                  left: 12,
+                  maxWidth: "40%",
+                  padding: "8px 10px",
+                  borderRadius: 8,
+                  background: "rgba(255, 255, 255, 0.9)",
+                  boxShadow: "0 2px 6px rgba(0, 0, 0, 0.15)",
+                  fontSize: "0.8rem",
+                  color: "#111827",
+                  pointerEvents: "none",
+                  whiteSpace: "pre-wrap",
+                }}
+              >
+                {transcript}
+              </div>
+            )}
           </div>
         </div>
     );
