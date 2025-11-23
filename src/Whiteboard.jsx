@@ -1,4 +1,5 @@
 import { event } from "@tauri-apps/api";
+import { fetch } from "@tauri-apps/plugin-http";
 import React, { useRef, useEffect, useState } from "react";
 
 export default function Whiteboard() {
