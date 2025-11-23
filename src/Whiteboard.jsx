@@ -118,37 +118,42 @@ export default function Whiteboard({ roomCode, username  }) {
     }, [username]);
 
     useEffect(() => {
-      let unlisten;
-    
-      async function init() {
-        try {
-          unlisten = await listen("message-received", (event) => {
-            const payload = event.payload;
-            if (typeof payload !== "string") return;
-            let data;
+        let unlisten;
+
+        async function init() {
             try {
-              data = JSON.parse(payload);
-            } catch {
-              return;
+                unlisten = await listen("message-received", (event) => {
+                    const payload = event.payload;
+                    if (typeof payload !== "string") return;
+                    let data;
+                    try {
+                        data = JSON.parse(payload);
+                    } catch {
+                        return;
+                    }
+
+                    if (data.me) {
+                        const peerName = data.me.username;
+                        if (!peerName) return;
+
+                        setParticipants((prev) => {
+                            const label =
+                                peerName === username ? `${peerName} (You)` : peerName;
+                            if (prev.includes(label)) return prev;
+                            return [...prev, label];
+                        });
+                    }
+
+                    if (data.draw) {
+                        const svgString = data.draw;
+                        drawSvgString(svgString);
+                    }
+                });
+            } catch (err) {
+                console.error("Failed to listen:", err);
             }
-    
-            if (!data.me) return;
-    
-            const peerName = data.me.username;
-            if (!peerName) return;
-    
-            setParticipants((prev) => {
-              const label =
-                peerName === username ? `${peerName} (You)` : peerName;
-              if (prev.includes(label)) return prev;
-              return [...prev, label];
-            });
-          });
-        } catch (err) {
-          console.error("Failed to listen:", err);
         }
-      }
-    
+
       init();
     
       return () => {
@@ -273,18 +278,20 @@ export default function Whiteboard({ roomCode, username  }) {
 
             if (data.svgs) {
                 const concatSvgs = `<svg xmlns="http://www.w3.org/2000/svg" width="${canvasRef.current.width}" height="${canvasRef.current.height}" viewBox="0 0 ${canvasRef.current.width} ${canvasRef.current.height}">` + [...canvasItems, ...data.svgs].join("\n") + "</svg>";
-                console.debug(concatSvgs);
-
-                const ctx = canvasRef.current.getContext("2d");
-                const v = Canvg.fromString(ctx, concatSvgs);
-                v.render();
-
-                setCanvasItems((prev) => [...prev, ...data.svgs]);
+                drawSvgString(concatSvgs);
+                invoke("send_message", { message: JSON.stringify({"draw": concatSvgs}) }).catch(console.error);
             }
         } catch (error) {
             console.error("Failed to parse AI response as JSON:", error);
             // TODO: show toast with error
         }
+    }
+
+    function drawSvgString(svgString) {
+        const ctx = canvasRef.current.getContext("2d");
+        const v = Canvg.fromString(ctx, svgString);
+        v.render();
+        setCanvasItems((prev) => [...prev, ...data.svgs]);
     }
 
     return (
