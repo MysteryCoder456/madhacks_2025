@@ -55,7 +55,7 @@ export default function Menu({ onCreateRoom, onJoinRoom, onOpenPreferences }) {
           onMouseLeave={() => setHovered(null)}
           onClick={onOpenPreferences}
         >
-          Preferences
+          Test Whiteboard
         </button>
       </div>
     </div>
