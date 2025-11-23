@@ -99,9 +99,9 @@ export default function Whiteboard({ roomCode, username  }) {
             const container = containerRef.current;
             if (!canvas || !container) return;
 
-        const rect = container.getBoundingClientRect();
-        const ctx = canvas.getContext("2d");
-        if (!ctx) return;
+            const rect = container.getBoundingClientRect();
+            const ctx = canvas.getContext("2d");
+            if (!ctx) return;
 
             canvas.width = rect.width;
             canvas.height = rect.height;
@@ -109,6 +109,8 @@ export default function Whiteboard({ roomCode, username  }) {
             ctx.lineJoin = "round";
             ctx.lineWidth = 3;
             ctx.strokeStyle = "#000000";
+
+            drawSvgs(canvasItems);
         }
 
         resize();
@@ -175,7 +177,6 @@ export default function Whiteboard({ roomCode, username  }) {
                     }
 
                     if (data.requestBoard) {
-                        console.debug(canvasItems);
                         invoke("send_message", { message: JSON.stringify({ wholeDraw: canvasItems }) });
                     }
                 });
@@ -191,7 +192,6 @@ export default function Whiteboard({ roomCode, username  }) {
 
         return () => {
             if (unlisten) {
-                console.log("<— the number should be 1");
                 unlisten();
             }
         };
