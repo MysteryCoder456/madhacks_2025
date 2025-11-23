@@ -156,6 +156,19 @@ async fn join_room(
         .map_err(|e| e.to_string())?;
     let (sender, receiver) = topic.split();
 
+    // Update remote ticket with current endpoint address
+    let mut new_ticket = ticket.clone();
+    new_ticket.current_peers.push(endpoint.addr());
+    let serialized_new_ticket = new_ticket.serialize();
+    sqlx::query!(
+        "UPDATE join_codes SET ticket = $1 WHERE code = $2",
+        serialized_new_ticket,
+        join_code
+    )
+    .execute(&mut conn)
+    .await
+    .map_err(|e| e.to_string())?;
+
     // Set state
     app_state.endpoint = Some(endpoint.clone());
     app_state.gossip = Some(gossip);
@@ -185,6 +198,61 @@ async fn send_message(app_state: State<'_, AppState>, message: String) -> Result
     Ok(())
 }
 
+#[tauri::command]
+async fn leave_room(app_state: State<'_, AppState>, join_code: String) -> Result<(), String> {
+    let mut app_state = app_state.write().await;
+
+    let endpoint_addr = app_state
+        .endpoint
+        .clone()
+        .ok_or("Endpoint not initialized")?
+        .addr();
+    if let Some(ref router) = app_state.router {
+        // Also shuts down protocols and the endpoint
+        router.shutdown().await.map_err(|e| e.to_string())?;
+    }
+
+    // Clear Iroh machinery
+    app_state.endpoint = None;
+    app_state.gossip = None;
+    app_state.router = None;
+    app_state.gossip_send = None;
+    app_state.username = None;
+
+    let mut conn = PgConnection::connect(&dotenv::var("DATABASE_URL").unwrap())
+        .await
+        .map_err(|e| e.to_string())?;
+
+    // Fetch the current ticket for this join code
+    let record = sqlx::query!("SELECT ticket FROM join_codes WHERE code = $1", &join_code)
+        .fetch_one(&mut conn)
+        .await
+        .map_err(|e| e.to_string())?;
+    let mut ticket = RoomTicket::deserialize(&record.ticket).map_err(|e| e.to_string())?;
+    ticket.current_peers.retain(|a| a.id != endpoint_addr.id);
+
+    if ticket.current_peers.is_empty() {
+        // Remove the remote ticket
+        sqlx::query!("DELETE FROM join_codes WHERE code = $1", join_code)
+            .execute(&mut conn)
+            .await
+            .map_err(|e| e.to_string())?;
+    } else {
+        // Update the remote ticket
+        let serialized_new_ticket = ticket.serialize();
+        sqlx::query!(
+            "UPDATE join_codes SET ticket = $1 WHERE code = $2",
+            serialized_new_ticket,
+            join_code
+        )
+        .execute(&mut conn)
+        .await
+        .map_err(|e| e.to_string())?;
+    }
+
+    Ok(())
+}
+
 async fn periodic_me_loop(app_handle: AppHandle, send: GossipSender) -> anyhow::Result<()> {
     let (username, endpoint_addr) = {
         let app_state = app_handle.state::<AppState>();
@@ -210,6 +278,7 @@ async fn periodic_me_loop(app_handle: AppHandle, send: GossipSender) -> anyhow::
             // Broadcast the 'me' message
             if let Err(err) = send.broadcast(me_message.into_bytes().into()).await {
                 eprintln!("Failed to broadcast 'me' message: {}", err);
+                break Err(anyhow::anyhow!(err));
             }
 
             // Sleep
@@ -245,6 +314,8 @@ async fn receiver_loop(app_handle: AppHandle, mut recv: GossipReceiver) -> anyho
             _ => {}
         }
     }
+
+    println!("Exited receiver loop");
     Ok(())
 }
 
@@ -264,7 +335,8 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             create_room,
             join_room,
-            send_message
+            send_message,
+            leave_room,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
