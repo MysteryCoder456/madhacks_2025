@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "collab-whiteboard",
+  "productName": "MindMerge",
   "version": "0.1.0",
   "identifier": "boi.yeah.collab-whiteboard",
   "build": {
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "collab-whiteboard",
+        "title": "MindMerge",
         "width": 800,
         "height": 600
       }
