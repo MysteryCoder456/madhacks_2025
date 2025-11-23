@@ -1,4 +1,4 @@
-import { event } from "@tauri-apps/api";
+import { listen } from "@tauri-apps/api/event";
 import React, { useRef, useEffect, useState } from "react";
 
 export default function Whiteboard({ roomCode, username  }) {
@@ -48,6 +48,47 @@ export default function Whiteboard({ roomCode, username  }) {
       });
     }, [username]);
 
+    useEffect(() => {
+      let unlisten;
+    
+      async function init() {
+        try {
+          unlisten = await listen("message-received", (event) => {
+            const payload = event.payload;
+            if (typeof payload !== "string") return;
+            let data;
+            try {
+              data = JSON.parse(payload);
+            } catch {
+              return;
+            }
+    
+            if (!data.me) return;
+    
+            const peerName = data.me.username;
+            if (!peerName) return;
+    
+            setParticipants((prev) => {
+              const label =
+                peerName === username ? `${peerName} (You)` : peerName;
+              if (prev.includes(label)) return prev;
+              return [...prev, label];
+            });
+          });
+        } catch (err) {
+          console.error("Failed to listen:", err);
+        }
+      }
+    
+      init();
+    
+      return () => {
+        if (unlisten) {
+          unlisten();
+        }
+      };
+    }, [username]);
+        
     function getMousePos(e) {
         const canvas = canvasRef.current;
         const rect = canvas.getBoundingClientRect();
