@@ -46,13 +46,16 @@ export default function JoinModal({ open, onClose, onJoin }) {
 
   const handleSubmit = async (e) => {
       e.preventDefault();
+      const joinCode = code.join(""); 
+      console.log("Join room with:", { joinCode, name });
       try {
-        const joinCode = await invoke("create_room", {username: name,
+        const joinCode = await invoke("join_room", {
+            username: name,
+            join_code: joinCode,
         });
-        console.log("Room created:", joinCode);
         onClose();
       } catch (error) {
-        console.error("Didn't create room", error);
+        console.error("Didn't join room", error);
         alert(
           "Couldn't join room\n\n" +
           `Error: ${error}\n\n` +

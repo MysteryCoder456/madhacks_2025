@@ -11,7 +11,7 @@ export default function Menu({ onCreateRoom, onJoinRoom, onOpenPreferences }) {
       setDisplayedTitle(fullTitle.slice(0, i + 1));
       i++;
       if (i === fullTitle.length) clearInterval(interval);
-    }, 90);
+    }, 167);
 
     return () => clearInterval(interval);
   }, []);
@@ -21,7 +21,7 @@ export default function Menu({ onCreateRoom, onJoinRoom, onOpenPreferences }) {
       <h1 style={styles.title}>{displayedTitle}</h1>
 
       <div style={styles.buttons}>
-        
+
         <button
           style={{
             ...styles.button,
@@ -55,7 +55,7 @@ export default function Menu({ onCreateRoom, onJoinRoom, onOpenPreferences }) {
           onMouseLeave={() => setHovered(null)}
           onClick={onOpenPreferences}
         >
-          Preferences
+          Test Whiteboard
         </button>
       </div>
     </div>
