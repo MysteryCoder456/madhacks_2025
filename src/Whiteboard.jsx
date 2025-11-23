@@ -139,7 +139,7 @@ export default function Whiteboard({ roomCode, username  }) {
                     } catch {
                         return;
                     }
-                    
+
                     // console.debug(data);
 
                     if (data.me) {
@@ -152,6 +152,11 @@ export default function Whiteboard({ roomCode, username  }) {
                             if (prev.includes(label)) return prev;
                             return [...prev, label];
                         });
+                    }
+
+                    if (data.wholeDraw) {
+                        const svgs = data.wholeDraw;
+                        drawSvgs(svgs);
                     }
 
                     if (data.draw) {
@@ -170,19 +175,24 @@ export default function Whiteboard({ roomCode, username  }) {
                             { style: { background: "#1f2937", color: "white" } }
                         );
                     }
+
+                    if (data.requestBoard) {
+                        invoke("send_message", { message: JSON.stringify({ wholeDraw: canvasItems }) });
+                    }
                 });
             } catch (err) {
                 console.error("Failed to listen:", err);
             }
         }
 
-      init();
-    
-      return () => {
-        if (unlisten) {
-          unlisten();
-        }
-      };
+        invoke("send_message", { message: JSON.stringify({ requestBoard: username }) }).catch(console.error);
+        init();
+
+        return () => {
+            if (unlisten) {
+                unlisten();
+            }
+        };
     }, [username]);
         
     function getMousePos(e) {
