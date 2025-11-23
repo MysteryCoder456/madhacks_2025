@@ -246,6 +246,8 @@ async fn receiver_loop(app_handle: AppHandle, mut recv: GossipReceiver) -> anyho
             _ => {}
         }
     }
+
+    println!("Closed receiver loop");
     Ok(())
 }
 

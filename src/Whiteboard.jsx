@@ -214,11 +214,8 @@ export default function Whiteboard({ roomCode, username  }) {
         ctx.stroke();
 
         const lineSvg = `<line x1="${lastPos.x}" y1="${lastPos.y}" x2="${pos.x}" y2="${pos.y}" stroke="${ctx.strokeStyle}" stroke-width="${thickness}"/>`;
-        setCanvasItems((prev) => {
-            let allSvgs = [...prev, lineSvg];
-            invoke("send_message", { message: JSON.stringify({"draw": allSvgs}) }).catch(console.error);
-            return allSvgs;
-        });
+        invoke("send_message", { message: JSON.stringify({"draw": [lineSvg]}) }).catch(console.error);
+        setCanvasItems((prev) => [...prev, lineSvg]);
 
         setLastPos(pos);
     }
@@ -302,11 +299,8 @@ export default function Whiteboard({ roomCode, username  }) {
 
             if (data.svgs) {
                 drawSvgs(data.svgs);
-                setCanvasItems((prev) => {
-                    let allSvgs = [...prev, ...data.svgs];
-                    invoke("send_message", { message: JSON.stringify({"draw": allSvgs}) }).catch(console.error);
-                    return allSvgs;
-                });
+                invoke("send_message", { message: JSON.stringify({"draw": data.svgs}) }).catch(console.error);
+                setCanvasItems((prev) => [...prev, ...data.svgs]);
             }
         } catch (error) {
             console.error("Failed to parse AI response as JSON:", error);
