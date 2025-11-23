@@ -11,7 +11,10 @@
     "http:default",
     {
       "identifier": "http:default",
-      "allow": [{ "url": "https://api.fish.audio/v1/asr" }],
+      "allow": [
+          { "url": "https://api.fish.audio" },
+          { "url": "https://generativelanguage.googleapis.com" }
+      ],
       "deny": []
     }
   ]

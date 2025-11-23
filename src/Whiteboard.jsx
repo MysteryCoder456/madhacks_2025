@@ -1,8 +1,22 @@
 import { event } from "@tauri-apps/api";
 import { fetch } from "@tauri-apps/plugin-http";
 import React, { useRef, useEffect, useState } from "react";
+import { GoogleGenAI } from "@google/genai";
+import { Canvg } from "canvg";
 
 export default function Whiteboard() {
+    const ai = new GoogleGenAI({
+        apiKey: "AIzaSyAJUAqxgnqicSb0xoR7K22utr8qReSaQ-8",
+    });
+    const aiModel = 'gemini-2.5-flash';
+    const aiSystemPrompt = `You are an expert Vector Graphics Engine. Your sole purpose is to interpret natural language commands and generate valid SVG (Scalable Vector Graphics) code\n\n### INPUT DATA\nYou will receive three pieces of information in every user message:\n1. **Command:** The natural language request (e.g., "Draw three small red circles in a row").\n2. **Canvas Dimensions:** The width and height of the viewing area (e.g., { width: 800, height: 600 }).\n3. **Existing Items:** A list of SVG elements currently on the canvas with their IDs and attributes\n\n### COORDINATE SYSTEM RULES\n- The coordinate system starts at (0,0) in the top-left corner.\n- X increases to the right.\n- Y increases downwards.\n- "Center" means (width/2, height/2)\n\n### GENERATION RULES\n1. **Output Format:** You must return a JSON object containing a single key: \`"svgs"\`. The value must be an **array of strings**. Each string in the array represents one distinct SVG element (e.g., \`["<rect ... />", "<circle ... />"]\`).\n2. **Separation:** If a command requires multiple shapes (e.g., "Draw a smiley face"), break the composition down into individual primitives (face, left eye, right eye, mouth) and place them as separate strings in the array.\n3. **IDs:** Generate unique IDs for every new shape (e.g., \`id="shape_timestamp_1"\`).\n4. **Context Awareness:** \n If the user references an existing item, use the coordinates from the **Existing Items** list to calculate position.\n- If the user asks to modify an item, output the *new* version of that tag in the array.\n5. **Defaults:** If no color is specified, use "black". If no size is specified, use reasonable defaults\n\n### EXAMPLE INTERACTIO\n\n**User Input:**\n{\n"command": "Draw a target with a red center and white outer ring",\n"canvas": { "width": 500, "height": 500 },\n"existing_items": []\n\n\n**Your Output:**\n{\n"svgs": [\n"<circle id='outer_ring' cx='250' cy='250' r='50' fill='none' stroke='white' stroke-width='5' />",\n"<circle id='center_dot' cx='250' cy='250' r='20' fill='red' />"\n]\n}`;
+    const aiConfig = {
+        systemInstruction: aiSystemPrompt,
+        thinkingConfig: {
+            thinkingBudget: -1, // Let the model decide
+        },
+    };
+
     const canvasRef = useRef(null);
     const containerRef = useRef(null);
     const [isDrawing, setIsDrawing] = useState(false);
@@ -18,6 +32,7 @@ export default function Whiteboard() {
     const FISH_API_KEY = import.meta.env.VITE_FISH_API_KEY;
     const FISH_ASR_URL = "https://api.fish.audio/v1/asr";
     const [transcript, setTranscript] = useState("");
+    const [canvasItems, setCanvasItems] = useState([]);
 
     async function transcribeWithFishAudio(blob) {
       if (!FISH_API_KEY) {
@@ -43,7 +58,7 @@ export default function Whiteboard() {
           const text = await res.text();
           console.error("FishAudio ASR error:", res.status, text);
           setTranscript(`FishAudio error ${res.status}: ${text}`);
-          return;
+          return "";
         }
 
         const data = await res.json();
@@ -56,11 +71,16 @@ export default function Whiteboard() {
 
         if (possibleText) {
           setTranscript(possibleText);
+          return possibleText;
         } else {
-          setTranscript(JSON.stringify(data, null, 2));
+          const stringJson = JSON.stringify(data, null, 2);
+          setTranscript(stringJson);
+          return stringJson;
         }
       } catch (err) {
         console.error("FishAudio request failed:", err);
+        setTranscript(`FishAudio request failed: ${err}`);
+        return "";
       }
     }
 
@@ -115,6 +135,7 @@ export default function Whiteboard() {
           ctx.globalCompositeOperation = "source-over";
           ctx.strokeStyle = color;
         }
+        // TODO: add to `canvasItems`
         ctx.beginPath();
         ctx.moveTo(lastPos.x, lastPos.y);
         ctx.lineTo(pos.x, pos.y);
@@ -132,6 +153,7 @@ export default function Whiteboard() {
         const ctx = canvas.getContext("2d");
         const rect = canvas.getBoundingClientRect();
         ctx.clearRect(0, 0, rect.width, rect.height);
+        setCanvasItems([]);
     }
 
     async function startRecording() {
@@ -161,7 +183,10 @@ export default function Whiteboard() {
         mediaRecorder.onstop = async () => {
           try {
             const blob = new Blob(audioChunksRef.current, { type: "audio/webm" });
-            await transcribeWithFishAudio(blob);
+            const transcription = await transcribeWithFishAudio(blob);
+            if (transcription.length === 0)
+              return;
+            await processTranscription(transcription);
           } finally {
             stream.getTracks().forEach((t) => t.stop());
             setIsRecording(false);
@@ -178,6 +203,38 @@ export default function Whiteboard() {
     function stopRecording() {
         if (!mediaRecorderRef.current) return;
         mediaRecorderRef.current.stop();
+    }
+
+    async function processTranscription(text) {
+        let promptPayload = JSON.stringify({
+            command: text,
+            canvas: { width: canvasRef.current.width, height: canvasRef.current.height },
+            existing_items: canvasItems,
+        });
+
+        try {
+            const response = await ai.models.generateContent({
+                model: aiModel,
+                contents: promptPayload,
+                config: aiConfig,
+            })
+            let responseString = response.candidates[0].content.parts[0].text;
+            const data = JSON.parse(responseString.replace("```json", "").replace("```", ""));
+
+            if (data.svgs) {
+                const concatSvgs = `<svg xmlns="http://www.w3.org/2000/svg" width="${canvasRef.current.width}" height="${canvasRef.current.height}" viewBox="0 0 ${canvasRef.current.width} ${canvasRef.current.height}">` + [...canvasItems, ...data.svgs].join("\n") + "</svg>";
+                console.debug(concatSvgs);
+
+                const ctx = canvasRef.current.getContext("2d");
+                const v = Canvg.fromString(ctx, concatSvgs);
+                v.render();
+
+                setCanvasItems((prev) => [...prev, ...data.svgs]);
+            }
+        } catch (error) {
+            console.error("Failed to parse AI response as JSON:", error);
+            // TODO: show toast with error
+        }
     }
 
     return (
