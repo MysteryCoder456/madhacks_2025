@@ -323,7 +323,7 @@ async fn receiver_loop(app_handle: AppHandle, mut recv: GossipReceiver) -> anyho
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    dotenv::dotenv().unwrap();
+    dotenv::dotenv().ok();
 
     tauri::Builder::default()
         .plugin(tauri_plugin_fs::init())
