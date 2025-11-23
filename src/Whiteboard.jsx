@@ -37,6 +37,11 @@ export default function Whiteboard({ roomCode, username  }) {
     const [transcript, setTranscript] = useState("");
     const [canvasItems, setCanvasItems] = useState([]);
 
+    // rate-limit state
+    const pendingLinesRef = useRef([]);
+    const lastFlushRef = useRef(0);
+    const FLUSH_INTERVAL_MS = 50;
+
     async function transcribeWithFishAudio(blob) {
       if (!FISH_API_KEY) {
         console.error("No FishAudio API key set in VITE_FISH_API_KEY");
@@ -213,15 +218,35 @@ export default function Whiteboard({ roomCode, username  }) {
         ctx.lineTo(pos.x, pos.y);
         ctx.stroke();
 
+        // RATE LIMIT
         const lineSvg = `<line x1="${lastPos.x}" y1="${lastPos.y}" x2="${pos.x}" y2="${pos.y}" stroke="${ctx.strokeStyle}" stroke-width="${thickness}"/>`;
         setCanvasItems((prev) => [...prev, lineSvg]);
-        invoke("send_message", { message: JSON.stringify({"draw": [lineSvg]}) }).catch(console.error);
+
+        pendingLinesRef.current.push(lineSvg);
+        const now = Date.now();
+        if (now - lastFlushRef.current >= FLUSH_INTERVAL_MS) {
+          const toSend = pendingLinesRef.current;
+          pendingLinesRef.current = [];
+          lastFlushRef.current = now;
+          invoke("send_message", {
+            message: JSON.stringify({ draw: toSend }),
+          }).catch(console.error);
+        }
 
         setLastPos(pos);
     }
 
     function stopDrawing() {
         setIsDrawing(false);
+
+        if (pendingLinesRef.current.length > 0) {
+          const toSend = pendingLinesRef.current;
+          pendingLinesRef.current = [];
+          lastFlushRef.current = Date.now();
+          invoke("send_message", {
+            message: JSON.stringify({ draw: toSend }),
+          }).catch(console.error);
+        }
     }
 
     function handleClear() {
