@@ -10,13 +10,13 @@ export default function Whiteboard({ roomCode, username  }) {
     const ai = new GoogleGenAI({
         apiKey: import.meta.env.VITE_GEMINI_API_KEY,
     });
-    const aiModel = 'gemini-2.5-flash-lite';
+    const aiModel = 'gemini-2.5-flash';
     const aiSystemPrompt = `You are an expert Vector Graphics Engine. Your sole purpose is to interpret natural language commands and generate valid SVG (Scalable Vector Graphics) code\n\n### INPUT DATA\nYou will receive three pieces of information in every user message:\n1. **Command:** The natural language request (e.g., "Draw three small red circles in a row").\n2. **Canvas Dimensions:** The width and height of the viewing area (e.g., { width: 800, height: 600 }).\n3. **Existing Items:** A list of SVG elements currently on the canvas with their IDs and attributes\n\n### COORDINATE SYSTEM RULES\n- The coordinate system starts at (0,0) in the top-left corner.\n- X increases to the right.\n- Y increases downwards.\n- "Center" means (width/2, height/2)\n\n### GENERATION RULES\n1. **Output Format:** You must return a JSON object containing a single key: \`"svgs"\`. The value must be an **array of strings**. Each string in the array represents one distinct SVG element (e.g., \`["<rect ... />", "<circle ... />"]\`).\n2. **Separation:** If a command requires multiple shapes (e.g., "Draw a smiley face"), break the composition down into individual primitives (face, left eye, right eye, mouth) and place them as separate strings in the array.\n3. **IDs:** Generate unique IDs for every new shape (e.g., \`id="shape_timestamp_1"\`).\n4. **Context Awareness:** \n If the user references an existing item, use the coordinates from the **Existing Items** list to calculate position.\n- If the user asks to modify an item, output the *new* version of that tag in the array.\n5. **Defaults:** If no color is specified, use "black". If no size is specified, use reasonable defaults\n\n### EXAMPLE INTERACTIO\n\n**User Input:**\n{\n"command": "Draw a target with a red center and white outer ring",\n"canvas": { "width": 500, "height": 500 },\n"existing_items": []\n\n\n**Your Output:**\n{\n"svgs": [\n"<circle id='outer_ring' cx='250' cy='250' r='50' fill='none' stroke='white' stroke-width='5' />",\n"<circle id='center_dot' cx='250' cy='250' r='20' fill='red' />"\n]\n}`;
     const aiConfig = {
         systemInstruction: aiSystemPrompt,
         thinkingConfig: {
             // thinkingBudget: -1, // Let the model decide
-            thinkingBudget: 0, // Disable thinking
+            thinkingBudget: 0,
         },
     };
 
@@ -214,11 +214,7 @@ export default function Whiteboard({ roomCode, username  }) {
         ctx.stroke();
 
         const lineSvg = `<line x1="${lastPos.x}" y1="${lastPos.y}" x2="${pos.x}" y2="${pos.y}" stroke="${ctx.strokeStyle}" stroke-width="${thickness}"/>`;
-        setCanvasItems((prev) => {
-            let allSvgs = [...prev, lineSvg];
-            invoke("send_message", { message: JSON.stringify({"draw": allSvgs}) }).catch(console.error);
-            return allSvgs;
-        });
+        invoke("send_message", { message: JSON.stringify({"draw": [lineSvg]}) }).catch(console.error);
 
         setLastPos(pos);
     }
@@ -302,11 +298,7 @@ export default function Whiteboard({ roomCode, username  }) {
 
             if (data.svgs) {
                 drawSvgs(data.svgs);
-                setCanvasItems((prev) => {
-                    let allSvgs = [...prev, ...data.svgs];
-                    invoke("send_message", { message: JSON.stringify({"draw": allSvgs}) }).catch(console.error);
-                    return allSvgs;
-                });
+                invoke("send_message", { message: JSON.stringify({"draw": data.svgs}) }).catch(console.error);
             }
         } catch (error) {
             console.error("Failed to parse AI response as JSON:", error);
@@ -315,12 +307,16 @@ export default function Whiteboard({ roomCode, username  }) {
     }
 
     function drawSvgs(svgs) {
-        const allSvgs = [...canvasItems, ...svgs];
-        const concatSvgs = `<svg xmlns="http://www.w3.org/2000/svg" width="${canvasRef.current.width}" height="${canvasRef.current.height}" viewBox="0 0 ${canvasRef.current.width} ${canvasRef.current.height}">` + allSvgs.join("\n") + "</svg>";
+        setCanvasItems((prev) => {
+            const allSvgs = [...prev, ...svgs];
+            const concatSvgs = `<svg xmlns="http://www.w3.org/2000/svg" width="${canvasRef.current.width}" height="${canvasRef.current.height}" viewBox="0 0 ${canvasRef.current.width} ${canvasRef.current.height}">` + allSvgs.join("\n") + "</svg>";
 
-        const ctx = canvasRef.current.getContext("2d");
-        const v = Canvg.fromString(ctx, concatSvgs);
-        v.render();
+            const ctx = canvasRef.current.getContext("2d");
+            const v = Canvg.fromString(ctx, concatSvgs);
+            v.render();
+
+            return allSvgs;
+        });
     }
 
     return (
@@ -411,7 +407,7 @@ export default function Whiteboard({ roomCode, username  }) {
                 <button
                   className="pillow-button"
                   onClick={() => {
-                      invoke("send_message", { message: JSON.stringify({ "requestPillow": username}) }).catch(console.error);
+                      invoke("send_message", { message: JSON.stringify({ "requestPillow": username }) }).catch(console.error);
                       setHasPillow(true);
                   }}
                 >
