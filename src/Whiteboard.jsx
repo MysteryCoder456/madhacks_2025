@@ -40,7 +40,7 @@ export default function Whiteboard({ roomCode, username  }) {
     // rate-limit state
     const pendingLinesRef = useRef([]);
     const lastFlushRef = useRef(0);
-    const FLUSH_INTERVAL_MS = 50;
+    const FLUSH_INTERVAL_MS = 100;
 
     async function transcribeWithFishAudio(blob) {
       if (!FISH_API_KEY) {
@@ -132,6 +132,7 @@ export default function Whiteboard({ roomCode, username  }) {
             try {
                 unlisten = await listen("message-received", (event) => {
                     const payload = event.payload;
+                    console.debug(payload);
                     if (typeof payload !== "string") return;
                     let data;
                     try {
@@ -140,15 +141,11 @@ export default function Whiteboard({ roomCode, username  }) {
                         return;
                     }
 
-                    // console.debug(data);
-
                     if (data.me) {
                         const peerName = data.me.username;
-                        if (!peerName) return;
 
                         setParticipants((prev) => {
-                            const label =
-                                peerName === username ? `${peerName} (You)` : peerName;
+                            const label = peerName === username ? `${peerName} (You)` : peerName;
                             if (prev.includes(label)) return prev;
                             return [...prev, label];
                         });
@@ -177,6 +174,7 @@ export default function Whiteboard({ roomCode, username  }) {
                     }
 
                     if (data.requestBoard) {
+                        console.debug(canvasItems);
                         invoke("send_message", { message: JSON.stringify({ wholeDraw: canvasItems }) });
                     }
                 });
@@ -185,15 +183,15 @@ export default function Whiteboard({ roomCode, username  }) {
             }
         }
 
-        invoke("send_message", { message: JSON.stringify({ requestBoard: username }) }).catch(console.error);
-        init();
+        init().then(() => invoke("send_message", { message: JSON.stringify({ requestBoard: username }) })).catch(console.error);
 
         return () => {
             if (unlisten) {
+                console.log("<— the number should be 1");
                 unlisten();
             }
         };
-    }, [username]);
+    }, []);
         
     function getMousePos(e) {
         const canvas = canvasRef.current;
