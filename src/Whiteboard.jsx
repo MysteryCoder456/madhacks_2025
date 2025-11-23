@@ -132,6 +132,8 @@ export default function Whiteboard({ roomCode, username  }) {
                     } catch {
                         return;
                     }
+                    
+                    console.debug(data);
 
                     if (data.me) {
                         const peerName = data.me.username;
@@ -150,8 +152,8 @@ export default function Whiteboard({ roomCode, username  }) {
                         drawSvgs(svgs);
                     }
 
-                    if (data.clear && data.clear === 1) {
-                        clear()
+                    if (data.clear) {
+                        clear();
                     }
 
                     if (data.requestPillow) {
