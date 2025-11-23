@@ -305,11 +305,6 @@ export default function Whiteboard({ roomCode, username, onExit }) {
     console.log("Download button clicked");
 
     const canvas = canvasRef.current;
-    if (!canvas) {
-      console.warn("No canvas found");
-      return;
-    }
-
     canvas.toBlob((blob) => {
       if (!blob) {
         console.error("Failed to create blob from canvas");
