@@ -54,6 +54,7 @@ export default function JoinModal({ open, onClose, onJoin }) {
             username: name,
             joinCode: joinCode,
         });
+        if(onJoin) onJoin(joinCode, name)
         onClose();
       } catch (error) {
         console.error("Didn't join room", error);

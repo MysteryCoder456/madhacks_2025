@@ -1,10 +1,10 @@
-import { event } from "@tauri-apps/api";
 import { fetch } from "@tauri-apps/plugin-http";
+import { listen } from "@tauri-apps/api/event";
 import React, { useRef, useEffect, useState } from "react";
 import { GoogleGenAI } from "@google/genai";
 import { Canvg } from "canvg";
 
-export default function Whiteboard() {
+export default function Whiteboard({ roomCode, username  }) {
     const ai = new GoogleGenAI({
         apiKey: import.meta.env.VITE_GEMINI_API_KEY,
     });
@@ -24,7 +24,7 @@ export default function Whiteboard() {
     const [color, setColor] = useState("#000000");
     const [thickness, setThickness] = useState(3);
     const [mode, setMode] = useState("pen");
-    const participants = ["Shivvy Dunne (You)", "Rehat", "Namboo"]
+    const [participants, setParticipants] = useState([]);
     const [hasPillow, setHasPillow] = useState(false);
     const [isRecording, setIsRecording] = useState(false);
     const mediaRecorderRef = useRef(null);
@@ -108,6 +108,56 @@ export default function Whiteboard() {
         return () => window.removeEventListener("resize", resize);
     }, []);
 
+    useEffect(() => {
+      if (!username) return;
+  
+      setParticipants((prev) => {
+        if (prev.includes(`${username} (You)`)) return prev;
+        return [...prev, `${username} (You)`];
+      });
+    }, [username]);
+
+    useEffect(() => {
+      let unlisten;
+    
+      async function init() {
+        try {
+          unlisten = await listen("message-received", (event) => {
+            const payload = event.payload;
+            if (typeof payload !== "string") return;
+            let data;
+            try {
+              data = JSON.parse(payload);
+            } catch {
+              return;
+            }
+    
+            if (!data.me) return;
+    
+            const peerName = data.me.username;
+            if (!peerName) return;
+    
+            setParticipants((prev) => {
+              const label =
+                peerName === username ? `${peerName} (You)` : peerName;
+              if (prev.includes(label)) return prev;
+              return [...prev, label];
+            });
+          });
+        } catch (err) {
+          console.error("Failed to listen:", err);
+        }
+      }
+    
+      init();
+    
+      return () => {
+        if (unlisten) {
+          unlisten();
+        }
+      };
+    }, [username]);
+        
     function getMousePos(e) {
         const canvas = canvasRef.current;
         const rect = canvas.getBoundingClientRect();
@@ -293,6 +343,24 @@ export default function Whiteboard() {
               </button>
             </div>
           </div>
+          <div
+          className="room-code"
+          style={{
+            margin: "0 24px",
+            fontSize: "1rem",
+            fontWeight: "600",
+            color: "#f6f6f6ff",
+            display: "flex",
+            alignItems: "center",
+            minWidth: "120px",
+            justifyContent: "center",
+          }}
+        >
+          Code:&nbsp;
+          <span style={{ letterSpacing: "0.15em" }}>
+            {roomCode || "n/a"}
+          </span>
+        </div>
             <div className="participants">
               <span className="participants-label">In room</span>
               {participants.map((name) => (
@@ -364,5 +432,3 @@ export default function Whiteboard() {
         </div>
     );
 }
-
-
