@@ -1,3 +1,6 @@
+#[macro_use]
+extern crate dotenv_codegen;
+
 use std::time::Duration;
 
 use blake3::hash;
@@ -44,7 +47,6 @@ async fn create_room(
     let router = Router::builder(endpoint.clone())
         .accept(iroh_gossip::ALPN, gossip.clone())
         .spawn();
-
     // Generate a topic ID and join the topic
     let topic_id = {
         let mac_addr = mac_address::get_mac_address()
@@ -66,7 +68,7 @@ async fn create_room(
     };
     let ticket_str = ticket.serialize();
 
-    let mut conn = PgConnection::connect(&dotenv::var("DATABASE_URL").unwrap())
+    let mut conn = PgConnection::connect(dotenv!("DATABASE_URL"))
         .await
         .map_err(|e| e.to_string())?;
 
@@ -120,7 +122,7 @@ async fn join_room(
     join_code: String,
 ) -> Result<(), String> {
     let mut app_state = app_state.write().await;
-    let mut conn = PgConnection::connect(&dotenv::var("DATABASE_URL").unwrap())
+    let mut conn = PgConnection::connect(dotenv!("DATABASE_URL"))
         .await
         .map_err(|e| e.to_string())?;
 
@@ -219,7 +221,7 @@ async fn leave_room(app_state: State<'_, AppState>, join_code: String) -> Result
     app_state.gossip_send = None;
     app_state.username = None;
 
-    let mut conn = PgConnection::connect(&dotenv::var("DATABASE_URL").unwrap())
+    let mut conn = PgConnection::connect(dotenv!("DATABASE_URL"))
         .await
         .map_err(|e| e.to_string())?;
 
