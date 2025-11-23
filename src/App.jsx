@@ -22,6 +22,10 @@ function App() {
     setIsPreviousCreationsOpen(true);
   };
 
+  const handleClosePreviousCreations = () => {
+    setIsPreviousCreationsOpen(false);
+  };
+
   const handleJoinSubmit = (roomCode, name) => {
     console.log("Join with:", roomCode, name);
     setIsJoinOpen(false);
@@ -92,7 +96,7 @@ function App() {
       )}
 
       {isPreviousCreationsOpen && (
-        <PreviousCreations onClose={() => setIsPreviousCreationsOpen(false)} />
+        <PreviousCreations onClose={handleClosePreviousCreations} />
       )}
     </>
   );

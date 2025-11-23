@@ -1,4 +1,4 @@
-export default function (onClose) {
+export default function ({ onClose }) {
   const creations = ["Pets.png", "BST.png", "UFO.png"];
 
   return (
