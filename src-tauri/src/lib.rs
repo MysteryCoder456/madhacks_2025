@@ -62,7 +62,7 @@ async fn create_room(
         .map_err(|e| e.to_string())?;
     let ticket = RoomTicket {
         topic_id: topic_id,
-        creator_addr: endpoint.addr(),
+        current_peers: vec![endpoint.addr()],
     };
     let ticket_str = ticket.serialize();
 
@@ -120,13 +120,12 @@ async fn join_room(
     join_code: String,
 ) -> Result<(), String> {
     let mut app_state = app_state.write().await;
+    let mut conn = PgConnection::connect(&dotenv::var("DATABASE_URL").unwrap())
+        .await
+        .map_err(|e| e.to_string())?;
 
     // Fetch and parse ticket from join code
     let ticket = {
-        let mut conn = PgConnection::connect(&dotenv::var("DATABASE_URL").unwrap())
-            .await
-            .map_err(|e| e.to_string())?;
-
         let code_row = sqlx::query!("SELECT ticket FROM join_codes where code = $1", &join_code)
             .fetch_optional(&mut conn)
             .await
@@ -147,15 +146,28 @@ async fn join_room(
         .spawn();
 
     // Join the topic
-    let topic_id = ticket.topic_id;
+    let topic_id = &ticket.topic_id;
     let topic = gossip
         .subscribe(
             TopicId::from_bytes(*hash(topic_id.as_bytes()).as_bytes()),
-            vec![ticket.creator_addr.id],
+            ticket.current_peers.iter().map(|addr| addr.id).collect(),
         )
         .await
         .map_err(|e| e.to_string())?;
     let (sender, receiver) = topic.split();
+
+    // Update remote ticket with current endpoint address
+    let mut new_ticket = ticket.clone();
+    new_ticket.current_peers.push(endpoint.addr());
+    let serialized_new_ticket = new_ticket.serialize();
+    sqlx::query!(
+        "UPDATE join_codes SET ticket = $1 WHERE code = $2",
+        serialized_new_ticket,
+        join_code
+    )
+    .execute(&mut conn)
+    .await
+    .map_err(|e| e.to_string())?;
 
     // Set state
     app_state.endpoint = Some(endpoint.clone());

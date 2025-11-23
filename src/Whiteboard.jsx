@@ -4,18 +4,20 @@ import { invoke } from "@tauri-apps/api/core";
 import React, { useRef, useEffect, useState } from "react";
 import { GoogleGenAI } from "@google/genai";
 import { Canvg } from "canvg";
+import { toast } from "react-hot-toast";
 
 export default function Whiteboard({ roomCode, username, onExit  }) {
     const ai = new GoogleGenAI({
         apiKey: import.meta.env.VITE_GEMINI_API_KEY,
     });
-    const aiModel = 'gemini-2.0-flash';
+    const aiModel = 'gemini-2.5-flash';
     const aiSystemPrompt = `You are an expert Vector Graphics Engine. Your sole purpose is to interpret natural language commands and generate valid SVG (Scalable Vector Graphics) code\n\n### INPUT DATA\nYou will receive three pieces of information in every user message:\n1. **Command:** The natural language request (e.g., "Draw three small red circles in a row").\n2. **Canvas Dimensions:** The width and height of the viewing area (e.g., { width: 800, height: 600 }).\n3. **Existing Items:** A list of SVG elements currently on the canvas with their IDs and attributes\n\n### COORDINATE SYSTEM RULES\n- The coordinate system starts at (0,0) in the top-left corner.\n- X increases to the right.\n- Y increases downwards.\n- "Center" means (width/2, height/2)\n\n### GENERATION RULES\n1. **Output Format:** You must return a JSON object containing a single key: \`"svgs"\`. The value must be an **array of strings**. Each string in the array represents one distinct SVG element (e.g., \`["<rect ... />", "<circle ... />"]\`).\n2. **Separation:** If a command requires multiple shapes (e.g., "Draw a smiley face"), break the composition down into individual primitives (face, left eye, right eye, mouth) and place them as separate strings in the array.\n3. **IDs:** Generate unique IDs for every new shape (e.g., \`id="shape_timestamp_1"\`).\n4. **Context Awareness:** \n If the user references an existing item, use the coordinates from the **Existing Items** list to calculate position.\n- If the user asks to modify an item, output the *new* version of that tag in the array.\n5. **Defaults:** If no color is specified, use "black". If no size is specified, use reasonable defaults\n\n### EXAMPLE INTERACTIO\n\n**User Input:**\n{\n"command": "Draw a target with a red center and white outer ring",\n"canvas": { "width": 500, "height": 500 },\n"existing_items": []\n\n\n**Your Output:**\n{\n"svgs": [\n"<circle id='outer_ring' cx='250' cy='250' r='50' fill='none' stroke='white' stroke-width='5' />",\n"<circle id='center_dot' cx='250' cy='250' r='20' fill='red' />"\n]\n}`;
     const aiConfig = {
         systemInstruction: aiSystemPrompt,
-        // thinkingConfig: {
-        //     thinkingBudget: -1, // Let the model decide
-        // },
+        thinkingConfig: {
+            // thinkingBudget: -1, // Let the model decide
+            thinkingBudget: 0,
+        },
     };
 
     const canvasRef = useRef(null);
@@ -34,6 +36,11 @@ export default function Whiteboard({ roomCode, username, onExit  }) {
     const FISH_ASR_URL = "https://api.fish.audio/v1/asr";
     const [transcript, setTranscript] = useState("");
     const [canvasItems, setCanvasItems] = useState([]);
+
+    // rate-limit state
+    const pendingLinesRef = useRef([]);
+    const lastFlushRef = useRef(0);
+    const FLUSH_INTERVAL_MS = 100;
 
     async function transcribeWithFishAudio(blob) {
       if (!FISH_API_KEY) {
@@ -92,9 +99,9 @@ export default function Whiteboard({ roomCode, username, onExit  }) {
             const container = containerRef.current;
             if (!canvas || !container) return;
 
-        const rect = container.getBoundingClientRect();
-        const ctx = canvas.getContext("2d");
-        if (!ctx) return;
+            const rect = container.getBoundingClientRect();
+            const ctx = canvas.getContext("2d");
+            if (!ctx) return;
 
             canvas.width = rect.width;
             canvas.height = rect.height;
@@ -102,6 +109,8 @@ export default function Whiteboard({ roomCode, username, onExit  }) {
             ctx.lineJoin = "round";
             ctx.lineWidth = 3;
             ctx.strokeStyle = "#000000";
+
+            drawSvgs(canvasItems);
         }
 
         resize();
@@ -120,6 +129,7 @@ export default function Whiteboard({ roomCode, username, onExit  }) {
 
     useEffect(() => {
         let unlisten;
+        let requestBoardId;
 
         async function init() {
             try {
@@ -132,19 +142,21 @@ export default function Whiteboard({ roomCode, username, onExit  }) {
                     } catch {
                         return;
                     }
-                    
-                    console.debug(data);
 
                     if (data.me) {
                         const peerName = data.me.username;
-                        if (!peerName) return;
 
                         setParticipants((prev) => {
-                            const label =
-                                peerName === username ? `${peerName} (You)` : peerName;
+                            const label = peerName === username ? `${peerName} (You)` : peerName;
                             if (prev.includes(label)) return prev;
                             return [...prev, label];
                         });
+                    }
+
+                    if (data.wholeDraw) {
+                        clearInterval(requestBoardId);
+                        const svgs = data.wholeDraw;
+                        drawSvgs(svgs);
                     }
 
                     if (data.draw) {
@@ -153,11 +165,19 @@ export default function Whiteboard({ roomCode, username, onExit  }) {
                     }
 
                     if (data.clear) {
-                        clear();
+                        handleClear();
                     }
 
                     if (data.requestPillow) {
                         setHasPillow(false);
+                        toast.success(
+                            ` ${data.requestPillow} took the talking pillow`,
+                            { style: { background: "#1f2937", color: "white" } }
+                        );
+                    }
+
+                    if (data.requestBoard) {
+                        invoke("send_message", { message: JSON.stringify({ wholeDraw: canvasItems }) });
                     }
                     if (data.leave) {
                       const leaveName = data.leave;
@@ -174,14 +194,17 @@ export default function Whiteboard({ roomCode, username, onExit  }) {
             }
         }
 
-      init();
-    
-      return () => {
-        if (unlisten) {
-          unlisten();
-        }
-      };
-    }, [username]);
+        init();
+        requestBoardId = setInterval(() => {
+            invoke("send_message", { message: JSON.stringify({ requestBoard: username }) }).catch(console.error);
+        }, 1000);
+
+        return () => {
+            if (unlisten) {
+                unlisten();
+            }
+        };
+    }, []);
         
     function getMousePos(e) {
         const canvas = canvasRef.current;
@@ -216,14 +239,32 @@ export default function Whiteboard({ roomCode, username, onExit  }) {
         ctx.lineTo(pos.x, pos.y);
         ctx.stroke();
 
+        // RATE LIMIT
         const lineSvg = `<line x1="${lastPos.x}" y1="${lastPos.y}" x2="${pos.x}" y2="${pos.y}" stroke="${ctx.strokeStyle}" stroke-width="${thickness}"/>`;
-        invoke("send_message", { message: JSON.stringify({"draw": [lineSvg]}) }).catch(console.error);
+        pendingLinesRef.current.push(lineSvg);
+        const now = Date.now();
+        if (now - lastFlushRef.current >= FLUSH_INTERVAL_MS) {
+            const toSend = pendingLinesRef.current;
+            pendingLinesRef.current = [];
+            lastFlushRef.current = now;
+            invoke("send_message", { message: JSON.stringify({ draw: toSend }) }).catch(console.error);
+            setCanvasItems((prev) => [...prev, toSend]);
+        }
 
         setLastPos(pos);
     }
 
     function stopDrawing() {
         setIsDrawing(false);
+
+        if (pendingLinesRef.current.length > 0) {
+          const toSend = pendingLinesRef.current;
+          pendingLinesRef.current = [];
+          lastFlushRef.current = Date.now();
+          invoke("send_message", {
+            message: JSON.stringify({ draw: toSend }),
+          }).catch(console.error);
+        }
     }
 
     function handleExit() {
@@ -370,7 +411,7 @@ export default function Whiteboard({ roomCode, username, onExit  }) {
           <div className="toolbar" style={{ display: "flex", gap: "12px", alignItems: "center" }}>
         <button onClick={() => {
             handleClear();
-            invoke("send_message", { message: JSON.stringify({"clear": "1"}) }).catch(console.error);
+            invoke("send_message", { message: JSON.stringify({"clear": username}) }).catch(console.error);
         }}>Clear</button>
 
             <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
@@ -478,7 +519,7 @@ export default function Whiteboard({ roomCode, username, onExit  }) {
                 <button
                   className="pillow-button"
                   onClick={() => {
-                      invoke("send_message", { message: JSON.stringify({ "requestPillow": "1" }) }).catch(console.error);
+                      invoke("send_message", { message: JSON.stringify({ "requestPillow": username }) }).catch(console.error);
                       setHasPillow(true);
                   }}
                 >
