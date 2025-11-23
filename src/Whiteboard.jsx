@@ -4,6 +4,7 @@ import { invoke } from "@tauri-apps/api/core";
 import React, { useRef, useEffect, useState } from "react";
 import { GoogleGenAI } from "@google/genai";
 import { Canvg } from "canvg";
+import { toast } from "react-hot-toast";
 
 export default function Whiteboard({ roomCode, username  }) {
     const ai = new GoogleGenAI({
@@ -159,6 +160,10 @@ export default function Whiteboard({ roomCode, username  }) {
 
                     if (data.requestPillow) {
                         setHasPillow(false);
+                        toast.loading(
+                            ` ${data.requestPillow} took the talking pillow`,
+                            { style: { background: "#1f2937", color: "white" } }
+                        );
                     }
                 });
             } catch (err) {
