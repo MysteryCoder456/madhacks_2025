@@ -149,6 +149,14 @@ export default function Whiteboard({ roomCode, username  }) {
                         const svgs = data.draw;
                         drawSvgs(svgs);
                     }
+
+                    if (data.clear && data.clear === 1) {
+                        clear()
+                    }
+
+                    if (data.requestPillow) {
+                        setHasPillow(false);
+                    }
                 });
             } catch (err) {
                 console.error("Failed to listen:", err);
@@ -307,7 +315,10 @@ export default function Whiteboard({ roomCode, username  }) {
       <div className="whiteboard-wrapper">
         <div className="top-row">
           <div className="toolbar" style={{ display: "flex", gap: "12px", alignItems: "center" }}>
-            <button onClick={handleClear}>Clear</button>
+        <button onClick={() => {
+            handleClear();
+            invoke("send_message", { message: JSON.stringify({"clear": 1}) }).catch(console.error);
+        }}>Clear</button>
 
             <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
               <span style={{ fontSize: "0.9rem" }}>Color</span>
@@ -388,8 +399,8 @@ export default function Whiteboard({ roomCode, username  }) {
                 <button
                   className="pillow-button"
                   onClick={() => {
-                    // later backend will enforce only one pillow per room
-                    setHasPillow(true);
+                      invoke("send_message", { message: JSON.stringify({ "requestPillow": 1 }) }).catch(console.error);
+                      setHasPillow(true);
                   }}
                 >
                   Request talking pillow 🎤
