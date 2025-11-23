@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import toast from "react-hot-toast";
 
 export default function JoinModal({ open, onClose, onJoin }) {
   const [code, setCode] = useState(["", "", "", "", "", ""]);
@@ -56,10 +57,9 @@ export default function JoinModal({ open, onClose, onJoin }) {
         onClose();
       } catch (error) {
         console.error("Didn't join room", error);
-        alert(
-          "Couldn't join room\n\n" +
-          `Error: ${error}\n\n` +
-          "Please try again."
+        toast.error(
+            `Failed to join room\nError: ${error}`,
+            { style: { background: "#1f2937", color: "white" } }
         );
       }
     };
