@@ -3,12 +3,14 @@ import Menu from "./menu.jsx";
 import JoinModal from "./join.jsx";
 import CreateModal from "./create.jsx";
 import Whiteboard from "./Whiteboard.jsx";
+import PreviousCreations from "./PreviousCreations.jsx";
 import { Toaster } from "react-hot-toast";
 
 function App() {
   const [isJoinOpen, setIsJoinOpen] = useState(false);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isWhiteboardOpen, setIsWhiteboardOpen] = useState(false);
+  const [isPreviousCreationsOpen, setIsPreviousCreationsOpen] = useState(false);
 
   const [currentRoomCode, setCurrentRoomCode] = useState(null);
   const [currentUsername, setCurrentUsername] = useState(null);
@@ -16,7 +18,9 @@ function App() {
   const handleCreateRoom = () => setIsCreateOpen(true);
   const handleJoinRoom = () => setIsJoinOpen(true);
 
-  const handleOpenPreferences = () => setIsWhiteboardOpen(true);
+  const handleOpenPreviousCreations = () => {
+    setIsPreviousCreationsOpen(true);
+  };
 
   const handleJoinSubmit = (roomCode, name) => {
     console.log("Join with:", roomCode, name);
@@ -59,11 +63,11 @@ function App() {
           },
         }}
       />
-      {!isWhiteboardOpen && (
+      {!isWhiteboardOpen && !isPreviousCreationsOpen && (
         <Menu
           onCreateRoom={handleCreateRoom}
           onJoinRoom={handleJoinRoom}
-          onOpenPreferences={handleOpenPreferences}
+          onOpenPreviousCreations={handleOpenPreviousCreations}
         />
       )}
 
@@ -85,6 +89,10 @@ function App() {
           username={currentUsername}
           onExit={handleExitWhiteboard}
         />
+      )}
+
+      {isPreviousCreationsOpen && (
+        <PreviousCreations onClose={() => setIsPreviousCreationsOpen(false)} />
       )}
     </>
   );

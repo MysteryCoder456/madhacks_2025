@@ -1,6 +1,10 @@
 import React, { useEffect, useState } from "react";
 
-export default function Menu({ onCreateRoom, onJoinRoom, onOpenPreferences }) {
+export default function Menu({
+  onCreateRoom,
+  onJoinRoom,
+  onOpenPreviousCreations,
+}) {
   const fullTitle = "MindMerge";
   const [displayedTitle, setDisplayedTitle] = useState("");
   const [hovered, setHovered] = useState(null);
@@ -52,9 +56,9 @@ export default function Menu({ onCreateRoom, onJoinRoom, onOpenPreferences }) {
           }}
           onMouseEnter={() => setHovered("prefs")}
           onMouseLeave={() => setHovered(null)}
-          onClick={onOpenPreferences}
+          onClick={onOpenPreviousCreations}
         >
-          Test Whiteboard
+          Previous Creations
         </button>
       </div>
     </div>
