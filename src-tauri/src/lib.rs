@@ -133,7 +133,6 @@ async fn join_room(
             .map_err(|e| e.to_string())?
             .ok_or("Given join code doesn't exist")?;
 
-        dbg!(&code_row.ticket);
         RoomTicket::deserialize(&code_row.ticket).map_err(|e| e.to_string())?
     };
 

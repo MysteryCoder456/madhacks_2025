@@ -291,13 +291,16 @@ export default function Whiteboard({ roomCode, username  }) {
     }
 
     function drawSvgs(svgs) {
-        const concatSvgs = `<svg xmlns="http://www.w3.org/2000/svg" width="${canvasRef.current.width}" height="${canvasRef.current.height}" viewBox="0 0 ${canvasRef.current.width} ${canvasRef.current.height}">` + [...canvasItems, ...svgs].join("\n") + "</svg>";
+        setCanvasItems((prev) => {
+            const allSvgs = [...prev, ...svgs];
+            const concatSvgs = `<svg xmlns="http://www.w3.org/2000/svg" width="${canvasRef.current.width}" height="${canvasRef.current.height}" viewBox="0 0 ${canvasRef.current.width} ${canvasRef.current.height}">` + allSvgs.join("\n") + "</svg>";
 
-        const ctx = canvasRef.current.getContext("2d");
-        const v = Canvg.fromString(ctx, concatSvgs);
-        v.render();
+            const ctx = canvasRef.current.getContext("2d");
+            const v = Canvg.fromString(ctx, concatSvgs);
+            v.render();
 
-        setCanvasItems((prev) => [...prev, ...svgs]);
+            return allSvgs;
+        });
     }
 
     return (
