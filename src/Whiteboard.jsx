@@ -127,12 +127,12 @@ export default function Whiteboard({ roomCode, username  }) {
 
     useEffect(() => {
         let unlisten;
+        let requestBoardId;
 
         async function init() {
             try {
                 unlisten = await listen("message-received", (event) => {
                     const payload = event.payload;
-                    console.debug(payload);
                     if (typeof payload !== "string") return;
                     let data;
                     try {
@@ -152,6 +152,7 @@ export default function Whiteboard({ roomCode, username  }) {
                     }
 
                     if (data.wholeDraw) {
+                        clearInterval(requestBoardId);
                         const svgs = data.wholeDraw;
                         drawSvgs(svgs);
                     }
@@ -183,7 +184,10 @@ export default function Whiteboard({ roomCode, username  }) {
             }
         }
 
-        init().then(() => invoke("send_message", { message: JSON.stringify({ requestBoard: username }) })).catch(console.error);
+        init();
+        requestBoardId = setInterval(() => {
+            invoke("send_message", { message: JSON.stringify({ requestBoard: username }) }).catch(console.error);
+        }, 1000);
 
         return () => {
             if (unlisten) {
