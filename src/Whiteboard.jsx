@@ -228,17 +228,14 @@ export default function Whiteboard({ roomCode, username  }) {
 
         // RATE LIMIT
         const lineSvg = `<line x1="${lastPos.x}" y1="${lastPos.y}" x2="${pos.x}" y2="${pos.y}" stroke="${ctx.strokeStyle}" stroke-width="${thickness}"/>`;
-        setCanvasItems((prev) => [...prev, lineSvg]);
-
         pendingLinesRef.current.push(lineSvg);
         const now = Date.now();
         if (now - lastFlushRef.current >= FLUSH_INTERVAL_MS) {
-          const toSend = pendingLinesRef.current;
-          pendingLinesRef.current = [];
-          lastFlushRef.current = now;
-          invoke("send_message", {
-            message: JSON.stringify({ draw: toSend }),
-          }).catch(console.error);
+            const toSend = pendingLinesRef.current;
+            pendingLinesRef.current = [];
+            lastFlushRef.current = now;
+            invoke("send_message", { message: JSON.stringify({ draw: toSend }) }).catch(console.error);
+            setCanvasItems((prev) => [...prev, toSend]);
         }
 
         setLastPos(pos);
