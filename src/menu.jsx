@@ -3,7 +3,7 @@ import React, { useEffect, useState } from "react";
 export default function Menu({ onCreateRoom, onJoinRoom, onOpenPreferences }) {
   const fullTitle = "MindMerge";
   const [displayedTitle, setDisplayedTitle] = useState("");
-  const [hovered, setHovered] = useState(null); 
+  const [hovered, setHovered] = useState(null);
 
   useEffect(() => {
     let i = 0;
@@ -21,7 +21,6 @@ export default function Menu({ onCreateRoom, onJoinRoom, onOpenPreferences }) {
       <h1 style={styles.title}>{displayedTitle}</h1>
 
       <div style={styles.buttons}>
-
         <button
           style={{
             ...styles.button,

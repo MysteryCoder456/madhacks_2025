@@ -6,11 +6,11 @@ export default function JoinModal({ open, onClose, onJoin }) {
   const [code, setCode] = useState(["", "", "", "", "", ""]);
   const [name, setName] = useState("");
 
-  if (!open) return null; 
+  if (!open) return null;
 
   const handleDigitChange = (index, value) => {
-    const digit = value.replace(/\D/g, "").slice(0, 1); 
-  
+    const digit = value.replace(/\D/g, "").slice(0, 1);
+
     setCode((prev) => {
       const next = [...prev];
       next[index] = digit;
@@ -22,17 +22,17 @@ export default function JoinModal({ open, onClose, onJoin }) {
       if (nextInput) nextInput.focus();
     }
   };
-  
+
   const handleDigitKeyDown = (index, e) => {
     if (e.key === "Backspace") {
       e.preventDefault();
-  
+
       setCode((prev) => {
         const next = [...prev];
         next[index] = "";
         return next;
       });
-  
+
       if (index > 0) {
         const prevInput = document.getElementById(`digit-${index - 1}`);
         if (prevInput) {
@@ -43,41 +43,34 @@ export default function JoinModal({ open, onClose, onJoin }) {
       }
     }
   };
-  
 
   const handleSubmit = async (e) => {
-      e.preventDefault();
-      const joinCode = code.join(""); 
-      console.log("Join room with:", { joinCode, name });
-      try {
-        await invoke("join_room", {
-            username: name,
-            joinCode: joinCode,
-        });
-        if(onJoin) onJoin(joinCode, name)
-        onClose();
-      } catch (error) {
-        console.error("Didn't join room", error);
-        toast.error(
-            `Failed to join room\nError: ${error}`,
-            { style: { background: "#1f2937", color: "white" } }
-        );
-      }
-    };
-  
+    e.preventDefault();
+    const joinCode = code.join("");
+    console.log("Join room with:", { joinCode, name });
+    try {
+      await invoke("join_room", {
+        username: name,
+        joinCode: joinCode,
+      });
+      if (onJoin) onJoin(joinCode, name);
+      onClose();
+    } catch (error) {
+      console.error("Didn't join room", error);
+      toast.error(`Failed to join room\nError: ${error}`, {
+        style: { background: "#1f2937", color: "white" },
+      });
+    }
+  };
 
   return (
     <div style={styles.overlay} onClick={onClose}>
-      <div
-        style={styles.modal}
-        onClick={(e) => e.stopPropagation()} 
-      >
+      <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
         <button
           style={styles.closeButton}
           onClick={onClose}
           aria-label="Close join modal"
-        >
-        </button>
+        ></button>
 
         <h2 style={styles.title}>Join by Code</h2>
         <p style={styles.subtitle}>
@@ -85,7 +78,6 @@ export default function JoinModal({ open, onClose, onJoin }) {
         </p>
 
         <form onSubmit={handleSubmit}>
-
           <div style={styles.fieldGroup}>
             <label style={styles.label}>Name shown on the whiteboard</label>
             <input
@@ -152,7 +144,7 @@ const styles = {
     borderRadius: "24px",
     border: "1px solid #111827",
     padding: "32px 40px 30px",
-    width: "min(680px, 95vw)", 
+    width: "min(680px, 95vw)",
     boxShadow: "0 30px 80px rgba(0, 0, 0, 0.8)",
     color: "#E5E7EB",
   },

@@ -10,17 +10,17 @@ export default function CreateModal({ open, onClose, onCreate }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const joinCode = await invoke("create_room", {username: name,
-      });
+      const joinCode = await invoke("create_room", { username: name });
       console.log("Room created:", joinCode);
-      if (onCreate) { onCreate(joinCode, name);}
+      if (onCreate) {
+        onCreate(joinCode, name);
+      }
       onClose();
     } catch (error) {
       console.error("Didn't create room", error);
-      toast.error(
-        ` Could not create room\nError: ${error}`,
-        { style: { background: "#1f2937", color: "white" } }
-      );
+      toast.error(` Could not create room\nError: ${error}`, {
+        style: { background: "#1f2937", color: "white" },
+      });
     }
   };
 
