@@ -8,6 +8,7 @@ use iroh_gossip::{
 };
 use iroh_tickets::Ticket;
 use room_ticket::RoomTicket;
+use sqlx::{prelude::*, PgConnection};
 use tauri::{AppHandle, Emitter, Manager, State};
 use tokio::sync::RwLock;
 
@@ -24,8 +25,6 @@ struct AppStateInner {
     username: Option<String>,
 }
 type AppState = RwLock<AppStateInner>;
-
-// TODO: 6 digit codes
 
 #[tauri::command]
 async fn create_room(
@@ -57,6 +56,43 @@ async fn create_room(
         .subscribe(TopicId::from_str(&topic_id).unwrap(), vec![]) // doesn't need bootstrap peers
         .await
         .map_err(|e| e.to_string())?;
+    let ticket = RoomTicket {
+        topic_id: topic_id,
+        creator_addr: endpoint.addr(),
+    };
+    let ticket_str = ticket.serialize();
+
+    let mut conn = PgConnection::connect(&dotenv::var("DATABASE_URL").unwrap())
+        .await
+        .map_err(|e| e.to_string())?;
+
+    // Find a unique 6-digit join code
+    let join_code = loop {
+        let candidate_join_code = format!("{:06}", rand::random::<u32>() % 1_000_000);
+
+        let existing_join_code = sqlx::query!(
+            "SELECT * FROM join_codes WHERE code = $1",
+            &candidate_join_code
+        )
+        .fetch_optional(&mut conn)
+        .await
+        .map_err(|e| e.to_string())?;
+
+        if existing_join_code.is_none() {
+            break candidate_join_code;
+        }
+    };
+
+    // Map the join code to ticket
+    sqlx::query!(
+        "INSERT INTO join_codes VALUES ($1, $2)",
+        &join_code,
+        &ticket_str
+    )
+    .execute(&mut conn)
+    .await
+    .map_err(|e| e.to_string())?;
+
     let (sender, receiver) = topic.split();
 
     // Set state
@@ -69,11 +105,7 @@ async fn create_room(
     tokio::spawn(periodic_me_loop(app_handle.clone(), sender));
     tokio::spawn(receiver_loop(app_handle.clone(), receiver));
 
-    let ticket = RoomTicket {
-        topic_id: topic_id,
-        creator_addr: endpoint.addr(),
-    };
-    Ok(ticket.serialize())
+    Ok(join_code)
 }
 
 #[tauri::command]
@@ -81,12 +113,24 @@ async fn join_room(
     app_handle: AppHandle,
     app_state: State<'_, AppState>,
     username: String,
-    ticket: String,
+    join_code: String,
 ) -> Result<(), String> {
-    // Parse ticket
-    let room_ticket = RoomTicket::deserialize(&ticket).map_err(|e| e.to_string())?;
-
     let mut app_state = app_state.write().await;
+
+    // Fetch and parse ticket from join code
+    let ticket = {
+        let mut conn = PgConnection::connect(&dotenv::var("DATABASE_URL").unwrap())
+            .await
+            .map_err(|e| e.to_string())?;
+
+        let code_row = sqlx::query!("SELECT ticket FROM join_codes where code = $1", &join_code)
+            .fetch_optional(&mut conn)
+            .await
+            .map_err(|e| e.to_string())?
+            .ok_or("Given join code doesn't exist")?;
+
+        RoomTicket::deserialize(&code_row.ticket).map_err(|e| e.to_string())?
+    };
 
     // Create Iroh machinery
     let endpoint = Endpoint::builder()
@@ -99,11 +143,11 @@ async fn join_room(
         .spawn();
 
     // Join the topic
-    let topic_id = room_ticket.topic_id;
+    let topic_id = ticket.topic_id;
     let topic = gossip
         .subscribe(
             TopicId::from_str(&topic_id).unwrap(),
-            vec![room_ticket.creator_addr.id],
+            vec![ticket.creator_addr.id],
         )
         .await
         .map_err(|e| e.to_string())?;
@@ -203,6 +247,8 @@ async fn receiver_loop(app_handle: AppHandle, mut recv: GossipReceiver) -> anyho
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    dotenv::dotenv().unwrap();
+
     tauri::Builder::default()
         .setup(|app| {
             let app_state = AppStateInner::default();
