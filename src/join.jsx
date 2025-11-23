@@ -49,9 +49,9 @@ export default function JoinModal({ open, onClose, onJoin }) {
       const joinCode = code.join(""); 
       console.log("Join room with:", { joinCode, name });
       try {
-        const joinCode = await invoke("join_room", {
+        await invoke("join_room", {
             username: name,
-            join_code: joinCode,
+            joinCode: joinCode,
         });
         onClose();
       } catch (error) {

@@ -1,5 +1,6 @@
-use std::{str::FromStr, time::Duration};
+use std::time::Duration;
 
+use blake3::hash;
 use futures_lite::StreamExt;
 use iroh::{protocol::Router, Endpoint};
 use iroh_gossip::{
@@ -50,10 +51,13 @@ async fn create_room(
             .map_err(|e| e.to_string())?
             .ok_or("Device MAC address not found")?
             .to_string();
-        mac_addr.replace(":", "")
+        mac_addr
     };
     let topic = gossip
-        .subscribe(TopicId::from_str(&topic_id).unwrap(), vec![]) // doesn't need bootstrap peers
+        .subscribe(
+            TopicId::from_bytes(*hash(topic_id.as_bytes()).as_bytes()),
+            vec![],
+        ) // doesn't need bootstrap peers
         .await
         .map_err(|e| e.to_string())?;
     let ticket = RoomTicket {
@@ -129,6 +133,7 @@ async fn join_room(
             .map_err(|e| e.to_string())?
             .ok_or("Given join code doesn't exist")?;
 
+        dbg!(&code_row.ticket);
         RoomTicket::deserialize(&code_row.ticket).map_err(|e| e.to_string())?
     };
 
@@ -146,7 +151,7 @@ async fn join_room(
     let topic_id = ticket.topic_id;
     let topic = gossip
         .subscribe(
-            TopicId::from_str(&topic_id).unwrap(),
+            TopicId::from_bytes(*hash(topic_id.as_bytes()).as_bytes()),
             vec![ticket.creator_addr.id],
         )
         .await
